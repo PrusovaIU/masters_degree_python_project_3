@@ -1,0 +1,16 @@
+[tool.poetry]
+name = "masters_degree_python_project_3"
+version = "0.1.0"
+description = ""
+authors = ["Iuliia <prusova.work@gmail.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+ruff = "^0.14.4"
+prettytable = "^3.16.0"
+
+[tool.poetry.dev-dependencies]
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
