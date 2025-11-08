@@ -24,6 +24,15 @@ class User:
             solt: str,
             registration_date: datetime
     ):
+        """
+        Класс пользователя.
+
+        :param user_id: ID пользователя.
+        :param username: имя пользователя.
+        :param password: пароль пользователя.
+        :param solt: случайная строка для хэширования пароля.
+        :param registration_date: дата регистрации пользователя.
+        """
         self._user_id = user_id
         self._username = username
         self._solt = solt
