@@ -17,12 +17,9 @@ class User:
             self,
             user_id: int,
             username: str,
-            # вместо hashed_password, как требуется в задании, передается
-            # пароль, чтобы инкапсулировать логику хэширования пароля внутри
-            # класса:
-            password: str,
             solt: str,
-            registration_date: datetime
+            registration_date: datetime,
+            hashed_password: Optional[str] = None
     ):
         """
         Класс пользователя.
@@ -37,8 +34,7 @@ class User:
         self._username = username
         self._solt = solt
         self._registration_date = registration_date
-        self._hashed_password: Optional[str] = None
-        self.change_password(password)
+        self._hashed_password: Optional[str] = hashed_password
 
     @property
     def user_id(self) -> int:
@@ -51,6 +47,34 @@ class User:
     @property
     def registration_date(self) -> datetime:
         return self._registration_date
+
+    @classmethod
+    def new(
+            cls,
+            user_id: int,
+            username: str,
+            password: str,
+            solt: str
+    ) -> "User":
+        """
+        Создание нового пользователя.
+
+        :param user_id: ID пользователя.
+        :param username: имя пользователя.
+        :param password: пароль пользователя.
+        :param solt: случайная строка для хэширования пароля.
+        :return: новый пользователь.
+        """
+        registration_date = datetime.now()
+        new_user = cls(
+            user_id,
+            username,
+            solt,
+            registration_date
+        )
+        new_user.change_password(password)
+        return new_user
+
 
     def get_user_info(self) -> dict:
         """
