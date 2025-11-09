@@ -2,7 +2,7 @@ from typing import Optional
 
 from .wallet import Wallet
 from .user import User
-import requests
+from valutatrade_hub.core.utils import get_exchange_rate
 
 
 class Portfolio:
@@ -35,7 +35,7 @@ class Portfolio:
         """
         if currency_code in self._wallets:
             raise ValueError(
-                f"У пользователя {self._user_id} уже есть кошелек для "
+                f"У пользователя {self._user.user_id} уже есть кошелек для "
                 f"валюты {currency_code}"
             )
         self._wallets[currency_code] = Wallet(currency_code, 0)
@@ -52,7 +52,7 @@ class Portfolio:
         :raises requests.exceptions.RequestException: если произошла ошибка
             при запросе к API.
         """
-        rates = self._get_exchange_rate(base_currency)
+        rates = get_exchange_rate(base_currency)
         total_value = 0
         for currency_code, wallet in self._wallets.items():
             if currency_code == base_currency:
@@ -61,24 +61,6 @@ class Portfolio:
                 rate = rates[currency_code]
                 total_value += wallet.balance / rate
         return total_value
-
-    @staticmethod
-    def _get_exchange_rate(base_currency: str) -> dict[str, float]:
-        """
-        Получить курсы валют.
-
-        :param base_currency: код валюты, относительно которой будут получены
-            курсы.
-
-        :return: словарь с курсами валют вида {код валюты: курс}.
-
-        :raises requests.exceptions.RequestException: если произошла ошибка
-            при запросе к API.
-        """
-        url = f"https://api.exchangerate-api.com/v4/latest/{base_currency}"
-        response: requests.Response = requests.get(url)
-        data: dict = response.json()
-        return data["rates"]
 
     def get_wallet(self, currency_code) -> Optional[Wallet]:
         """
