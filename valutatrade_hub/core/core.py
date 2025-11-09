@@ -2,7 +2,7 @@ import secrets
 
 from .models import User, Portfolio, Wallet
 from .utils import data as data_utils
-from typing import TypeVar, Type
+from typing import TypeVar, Type, Protocol
 
 
 class CoreError(Exception):
@@ -16,6 +16,11 @@ class UserIsAlreadyExistError(UserError):
     pass
 
 
+class DumpClassProtocol(Protocol):
+    def dump(self) -> dict: ...
+
+
+DC = TypeVar("DC", bound=DumpClassProtocol)
 T = TypeVar("T")
 
 
@@ -23,21 +28,18 @@ class Core:
     _USER_PASSWORD_MIN_LENGTH = 4
 
     def __init__(self):
-        self._users: list[User] = self._load_data(User, "Пользователь")
-        self._portfolios: list[Portfolio] = self._load_data(
-            Portfolio, "Портфель"
-        )
+        self._users: list[User] = self._load_data(User)
+        self._portfolios: list[Portfolio] = self._load_data(Portfolio)
 
     @staticmethod
-    def _load_data(obj: Type[T], obj_title: str) -> list[T]:
+    def _load_data(obj: Type[T]) -> list[T]:
         """
         Загрузка данных из файла.
 
         :param obj: класс объекта.
-        :param obj_title: название объекта.
         :return: список объектов.
 
-        :raises SystemError: если не удалось загрузить данные.
+        :raises CoreError: если не удалось загрузить данные.
         """
         try:
             data: list[dict] = data_utils.load_data(obj)
@@ -45,18 +47,36 @@ class Core:
             for i, user in enumerate(data):
                 objs.append(obj(**user))
         except data_utils.DataError as e:
-            raise SystemError(
-                f"Невозможно загрузить данные \"{obj_title}\": {e}"
+            raise CoreError(
+                f"Невозможно загрузить данные \"{obj.__name__}\": {e}"
             )
         except TypeError as e:
-            raise SystemError(
+            raise CoreError(
                 f"Неверный формат данных: "
-                f"{e} ({obj_title} [{i}])"
+                f"{e} ({obj.__name__} [{i}])"
             )
         return objs
 
+    @staticmethod
+    def _save_data(obj: Type[DC], data: list[DC]) -> None:
+        """
+        Сохранение данных в файл.
 
-    def registrate_user(self, username: str, password: str) -> None:
+        :param obj: класс объекта.
+        :param data: список объектов.
+        :return: None.
+
+        :raises CoreError: если не удалось сохранить данные.
+        """
+        dumps_data: list[dict] = [el.dump() for el in data]
+        try:
+            data_utils.save_data(obj, dumps_data)
+        except data_utils.DataError as e:
+            raise CoreError(
+                f"Невозможно сохранить данные \"{obj.__name__}\": {e}"
+            )
+
+    def registrate_user(self, username: str, password: str) -> int:
         """
         Регистрация нового пользователя.
 
@@ -64,18 +84,18 @@ class Core:
 
         :param username: имя пользователя.
         :param password: пароль пользователя.
-        :return: новый пользователь.
+        :return: ID нового пользователя.
 
         :raises ValueError: если переданы некорректные параметры.
 
         :raises UserIsAlreadyExistError: если пользователь с таким именем уже
             существует.
 
-        :raises UserError: если не удалось создать нового пользователя
+        :raises CoreError: если не удалось создать нового пользователя
         """
         new_user = self._new_user(username, password)
         self._new_portfolio(new_user)
-
+        return new_user.user_id
 
     def _new_user(self, username: str, password: str) -> User:
         """
@@ -90,7 +110,7 @@ class Core:
         :raises UserIsAlreadyExistError: если пользователь с таким именем уже
             существует.
 
-        :raises UserError: если не удалось создать нового пользователя
+        :raises CoreError: если не удалось создать нового пользователя
         """
         self._check_user_parameters(username, password)
         if username in [user.username for user in self._users]:
@@ -104,30 +124,8 @@ class Core:
             solt
         )
         self._users.append(user)
-        try:
-            data_utils.save_data(User, self._users)
-        except data_utils.DataError as e:
-            raise UserError(f"Ошибка при сохранении данных: {e}")
+        self._save_data(User, self._users)
         return user
-
-    def _new_portfolio(self, user: User) -> Portfolio:
-        """
-        Создание нового портфеля.
-
-        :param user: пользователь, для которого создается портфель.
-        :return: новый портфель.
-
-        :raises UserError: если не удалось создать новый портфель.
-        """
-        new_portfolio = Portfolio(user)
-        self._portfolios.append(new_portfolio)
-        try:
-            data_utils.save_data(Portfolio, self._portfolios)
-        except data_utils.DataError as e:
-            raise UserError(
-                f"Ошибка при сохранении данных о портфеле: {e}"
-            )
-        return new_portfolio
 
     def _check_user_parameters(self, username: str, password: str) -> None:
         """
@@ -145,3 +143,17 @@ class Core:
             raise ValueError("Пароль не может быть пустым")
         if len(password) < self._USER_PASSWORD_MIN_LENGTH:
             raise ValueError("Пароль должен быть не короче 4 символов")
+
+    def _new_portfolio(self, user: User) -> Portfolio:
+        """
+        Создание нового портфеля.
+
+        :param user: пользователь, для которого создается портфель.
+        :return: новый портфель.
+
+        :raises CoreError: если не удалось создать новый портфель.
+        """
+        new_portfolio = Portfolio(user)
+        self._portfolios.append(new_portfolio)
+        self._save_data(Portfolio, self._portfolios)
+        return new_portfolio
