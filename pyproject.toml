@@ -8,6 +8,7 @@ authors = ["Iuliia <prusova.work@gmail.com>"]
 python = "^3.10"
 ruff = "^0.14.4"
 prettytable = "^3.16.0"
+requests = "^2.32.5"
 
 [tool.poetry.dev-dependencies]
 

@@ -52,3 +52,8 @@ class Wallet:
             "currency_code": self.currency_code,
             "balance": self._balance
         }
+
+    def dump(self) -> dict:
+        return {
+            "balance": self._balance
+        }
