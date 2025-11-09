@@ -2,6 +2,7 @@ from collections.abc import Callable
 from enum import Enum
 from typing import Optional, Any
 import re
+from inspect import signature
 
 
 class Commands(Enum):
@@ -9,17 +10,22 @@ class Commands(Enum):
 
 
 CommandArgsType = dict[str, Any]
-CommandHandlerType = Callable[[Commands, CommandArgsType], None]
-
-
-class CommandHandlerError(Exception):
-    pass
+CommandHandlerType = Callable[[CommandArgsType], None] | Callable[[], None]
 
 
 class CommandHandler:
+    """
+    Класс для регистрации и выполнения команд.
+    """
     _handlers: dict[Commands, CommandHandlerType] = {}
 
     def __call__(self, command: Commands):
+        """
+        Декоратор для регистрации обработчика команды.
+
+        :param command: команда.
+        :return: декоратор для регистрации обработчика команды.
+        """
         def decorator(func: CommandHandlerType):
             self._handlers[command] = func
             return func
@@ -27,6 +33,14 @@ class CommandHandler:
 
     @staticmethod
     def _check_command_args(command_args: str) -> None:
+        """
+        Проверка формата аргументов команды.
+
+        :param command_args: строка с аргументами команды.
+        :return: None.
+
+        :raises ValueError: если аргументы команды не соответствуют формату.
+        """
         matching = re.match(r"^(--\w+ \w+ ?)+^", command_args)
         if not matching:
             raise ValueError("Неверный формат аргументов команды")
@@ -70,6 +84,32 @@ class CommandHandler:
                 f"Не зарегистрирован обработчик для команды \"{command}\""
             )
 
+    @staticmethod
+    def run_handler(
+            command: Commands,
+            handler: CommandHandlerType,
+            args: CommandArgsType
+    ) -> Any:
+        """
+        Запуск обработчика команды.
+
+        :param command: команда.
+        :param handler: обработчик команды.
+        :param args: аргументы команды.
+        :return: результат выполнения команды.
+
+        :raises ValueError: если аргументы команды не соответствуют формату.
+        """
+        handler_sign = signature(handler)
+        if len(handler_sign.parameters) > 0:
+            return handler(args)
+        elif args:
+            raise ValueError(
+                f"Команда \"{command.value}\" не принимает аргументы"
+            )
+        else:
+            return handler()
+
     @classmethod
     def handle(cls, command: Commands, command_args: Optional[str]) -> Any:
         """
@@ -85,7 +125,7 @@ class CommandHandler:
         """
         handler = cls._get_handler(command)
         args = cls.parse_command_args(command_args)
-        return handler(command, args)
+        return cls.run_handler(command, handler, args)
 
 
 command_handler = CommandHandler
