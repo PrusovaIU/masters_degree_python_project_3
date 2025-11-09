@@ -2,11 +2,11 @@ from typing import Optional
 
 from .wallet import Wallet
 from .user import User
-from valutatrade_hub.core.utils import get_exchange_rate
+from valutatrade_hub.core.utils.currency_rates import get_exchange_rate
 
 
 class Portfolio:
-    def __init__(self, user: User, wallets: dict[str, Wallet]):
+    def __init__(self, user: User, wallets: dict[str, Wallet] = None):
         """
         Портфель пользователя.
 
@@ -16,7 +16,7 @@ class Portfolio:
             {код валюты: Wallet}
         """
         self._user = user
-        self._wallets = wallets
+        self._wallets = wallets if wallets is not None else {}
 
     @property
     def user(self) -> User:
