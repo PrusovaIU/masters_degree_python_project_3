@@ -11,16 +11,16 @@ class ProtfolioJsonKeys(Enum):
 
 
 class Portfolio:
-    def __init__(self, user_id: int, wallets: dict[str, Wallet] = None):
+    def __init__(self, user: int, wallets: dict[str, Wallet] = None):
         """
         Портфель пользователя.
 
-        :param user_id: id пользователя.
+        :param user: id пользователя.
 
         :param wallets: словарь с кошельками пользователя вида
             {код валюты: Wallet}
         """
-        self._user = user_id
+        self._user = user
         self._wallets = wallets if wallets is not None else {}
 
     @property
