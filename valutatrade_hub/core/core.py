@@ -1,6 +1,7 @@
 import secrets
 
-from .models import User, Portfolio, Wallet
+from .models import User
+from .models.portfolio import Portfolio, ProtfolioJsonKeys
 from .utils import data as data_utils
 from typing import TypeVar, Type, Protocol
 
@@ -21,39 +22,54 @@ class DumpClassProtocol(Protocol):
 
 
 DC = TypeVar("DC", bound=DumpClassProtocol)
-T = TypeVar("T")
 
 
 class Core:
     _USER_PASSWORD_MIN_LENGTH = 4
 
     def __init__(self):
-        self._users: list[User] = self._load_data(User)
-        self._portfolios: list[Portfolio] = self._load_data(Portfolio)
+        self._users: list[User] = self._load_users()
+        self._portfolios: list[Portfolio] = self._load_portfolios()
 
     @staticmethod
-    def _load_data(obj: Type[T]) -> list[T]:
-        """
-        Загрузка данных из файла.
-
-        :param obj: класс объекта.
-        :return: список объектов.
-
-        :raises CoreError: если не удалось загрузить данные.
-        """
+    def _load_users() -> list[User]:
         try:
-            data: list[dict] = data_utils.load_data(obj)
-            objs: list[T] = []
+            data: list[dict] = data_utils.load_data(User)
+            objs: list[User] = []
             for i, user in enumerate(data):
-                objs.append(obj(**user))
+                objs.append(User(**user))
         except data_utils.DataError as e:
             raise CoreError(
-                f"Невозможно загрузить данные \"{obj.__name__}\": {e}"
+                f"Невозможно загрузить данные о пользователях: {e}"
             )
         except TypeError as e:
             raise CoreError(
-                f"Неверный формат данных: "
-                f"{e} ({obj.__name__} [{i}])"
+                f"Неверный формат данных: {e} (пользователь [{i}])"
+            )
+        return objs
+
+    def _load_portfolios(self) -> list[Portfolio]:
+        try:
+            data: list[dict] = data_utils.load_data(Portfolio)
+            objs: list[Portfolio] = []
+            for i, portfolio in enumerate(data):
+                user_id = portfolio.pop(ProtfolioJsonKeys.user.value)
+                user_id = int(user_id)
+                user = [
+                    user for user in self._users if user.user_id == user_id
+                ][0]
+                objs.append(Portfolio(user, **portfolio))
+        except data_utils.DataError as e:
+            raise CoreError(
+                f"Невозможно загрузить данные о портфелях: {e}"
+            )
+        except IndexError:
+            raise CoreError(
+                f"Пользователь с ID \"{user_id}\" не найден"
+            )
+        except TypeError as e:
+            raise CoreError(
+                f"Неверный формат данных: {e} (портфель [{i}])"
             )
         return objs
 

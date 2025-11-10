@@ -2,6 +2,7 @@ from datetime import datetime
 from enum import Enum
 from hashlib import sha256
 from typing import Optional
+from valutatrade_hub.core.utils.data import save_data
 
 
 class UserParameterName(Enum):
@@ -18,7 +19,7 @@ class User:
             user_id: int,
             username: str,
             solt: str,
-            registration_date: datetime,
+            registration_date: datetime | str,
             hashed_password: Optional[str] = None
     ):
         """
@@ -33,6 +34,8 @@ class User:
         self._user_id = user_id
         self._username = username
         self._solt = solt
+        if isinstance(registration_date, str):
+            registration_date = datetime.fromisoformat(registration_date)
         self._registration_date = registration_date
         self._hashed_password: Optional[str] = hashed_password
 

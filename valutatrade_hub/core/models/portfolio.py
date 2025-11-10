@@ -3,6 +3,12 @@ from typing import Optional
 from .wallet import Wallet
 from .user import User
 from valutatrade_hub.core.utils.currency_rates import get_exchange_rate
+from enum import Enum
+
+
+class ProtfolioJsonKeys(Enum):
+    user = "user"
+    wallets = "wallets"
 
 
 class Portfolio:
@@ -73,9 +79,6 @@ class Portfolio:
 
     def dump(self) -> dict:
         return {
-            "user": self._user.user_id,
-            "wallets": [
-                {currency_code: wallet.dump()}
-                for currency_code, wallet in self._wallets.items()
-            ]
+            ProtfolioJsonKeys.user.value: self._user.user_id,
+            ProtfolioJsonKeys.wallets.value: self._wallets
         }
