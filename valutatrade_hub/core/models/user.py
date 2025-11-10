@@ -105,5 +105,6 @@ class User:
             UserParameterName.username.value: self._username,
             UserParameterName.hashed_password.value: self._hashed_password,
             UserParameterName.solt.value: self._solt,
-            UserParameterName.registration_date.value: self._registration_date
+            UserParameterName.registration_date.value:
+                self._registration_date.isoformat()
         }

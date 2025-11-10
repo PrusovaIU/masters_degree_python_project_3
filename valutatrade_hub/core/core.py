@@ -115,7 +115,10 @@ class Core:
         self._check_user_parameters(username, password)
         if username in [user.username for user in self._users]:
             raise UserIsAlreadyExistError(username)
-        user_id: int = max([user.user_id for user in self._users]) + 1
+        user_id: int = max(
+            [user.user_id for user in self._users],
+            default=0
+        ) + 1
         solt: str = secrets.token_hex(32)
         user = User.new(
             user_id,
