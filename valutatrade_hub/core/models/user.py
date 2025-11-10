@@ -27,9 +27,9 @@ class User:
 
         :param user_id: ID пользователя.
         :param username: имя пользователя.
-        :param password: пароль пользователя.
         :param solt: случайная строка для хэширования пароля.
         :param registration_date: дата регистрации пользователя.
+        :param hashed_password: хэшированный пароль пользователя.
         """
         self._user_id = user_id
         self._username = username
@@ -96,8 +96,27 @@ class User:
         :param new_password: новый пароль.
         :return: None.
         """
-        encoded_password = (new_password + self._solt).encode("utf-8")
-        self._hashed_password = sha256(encoded_password).hexdigest()
+        self._hashed_password = self._hash_password(new_password)
+
+    def _hash_password(self, password: str) -> str:
+        """
+        Хэширование пароля.
+
+        :param password: пароль.
+        :return: хэшированный пароль.
+        """
+        encoded_password = (password + self._solt).encode("utf-8")
+        return sha256(encoded_password).hexdigest()
+
+    def check_password(self, password: str) -> bool:
+        """
+        Проверка пароля.
+
+        :param password: пароль.
+        :return: True, если пароль верный, иначе False.
+        """
+        hash_password = self._hash_password(password)
+        return hash_password == self._hashed_password
 
     def dump(self) -> dict:
         """

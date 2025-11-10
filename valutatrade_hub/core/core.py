@@ -16,6 +16,9 @@ class UserError(CoreError):
 class UserIsAlreadyExistError(UserError):
     pass
 
+class UnknownUserError(UserError):
+    pass
+
 
 class DumpClassProtocol(Protocol):
     def dump(self) -> dict: ...
@@ -30,6 +33,13 @@ class Core:
     def __init__(self):
         self._users: list[User] = self._load_users()
         self._portfolios: list[Portfolio] = self._load_portfolios()
+
+    @property
+    def user_names(self) -> list[str]:
+        """
+        :return: список имен пользователей.
+        """
+        return [user.username for user in self._users]
 
     @staticmethod
     def _load_users() -> list[User]:
@@ -143,7 +153,7 @@ class Core:
         :raises CoreError: если не удалось создать нового пользователя
         """
         self._check_user_parameters(username, password)
-        if username in [user.username for user in self._users]:
+        if username in self.user_names:
             raise UserIsAlreadyExistError(username)
         user_id: int = max(
             [user.user_id for user in self._users],
@@ -190,3 +200,26 @@ class Core:
         self._portfolios.append(new_portfolio)
         self._save_data(Portfolio, self._portfolios)
         return new_portfolio
+
+    def login_user(self, username: str, password: str) -> User:
+        """
+        Авторизация пользователя.
+
+        :param username: имя пользователя.
+        :param password: пароль пользователя.
+        :return: пользователь.
+
+        :raises ValueError: если передан некорректный пароль.
+
+        :raises UnknownUserError: если пользователь с таким именем не найден.
+        """
+        try:
+            user: User = [
+                user for user in self._users if user.username == username
+            ][0]
+            if not user.check_password(password):
+                raise ValueError("Неверный пароль")
+            return user
+        except IndexError:
+            raise UnknownUserError(username)
+

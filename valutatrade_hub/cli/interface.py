@@ -1,7 +1,8 @@
 from typing import Optional
 
-from valutatrade_hub.core.core import Core, CoreError, UserIsAlreadyExistError
+from valutatrade_hub.core import core
 from .commands import Commands, CommandHandler, CommandArgsType
+from valutatrade_hub.core.models import User
 
 
 class EngineError(Exception):
@@ -14,7 +15,8 @@ class UnknownCommandError(EngineError):
 
 class Engine:
     def __init__(self):
-        self._core = Core()
+        self._core = core.Core()
+        self._current_user: Optional[User] = None
         self._exit = False
 
     @CommandHandler(Commands.exit)
@@ -47,14 +49,29 @@ class Engine:
                 f"Пользователь '{username}' зарегистрирован (id={user_id}). "
                 f"Войдите: login --username {username} --password ****"
             )
-        except ValueError as e:
-            print(f"Переданы некорректные данные: {e}")
         except KeyError as e:
             print(f"Не передан обязательный параметр: {e}")
-        except UserIsAlreadyExistError:
-            print(f"Имя пользователя \"{username}\" уже занято")
-        except CoreError as e:
+        except ValueError as e:
+            print(f"Переданы некорректные данные: {e}")
+        except core.UserIsAlreadyExistError as e:
+            print(f"Имя пользователя \"{e}\" уже занято")
+        except core.CoreError as e:
             print(e)
+
+    @CommandHandler(Commands.login)
+    def login(self, command_args: CommandArgsType) -> None:
+        try:
+            username = command_args["username"]
+            password = command_args["password"]
+            self._current_user = self._core.login_user(username, password)
+            print(f"Вы вошли как \"{self._current_user.username}\"")
+        except KeyError as e:
+            print(f"Не передан обязательный параметр: {e}")
+        except ValueError as e:
+            print(e)
+        except core.UnknownUserError as e:
+            print(f"Пользователь \"{e}\" не найден")
+
 
     @staticmethod
     def _input() -> tuple[Commands, Optional[str]]:

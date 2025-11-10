@@ -7,6 +7,7 @@ from inspect import signature
 
 class Commands(Enum):
     register = "register"
+    login = "login"
     exit = "exit"
 
 
