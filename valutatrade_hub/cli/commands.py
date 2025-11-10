@@ -8,6 +8,7 @@ from inspect import signature
 class Commands(Enum):
     register = "register"
     login = "login"
+    show_portfolio = "show-portfolio"
     exit = "exit"
 
 

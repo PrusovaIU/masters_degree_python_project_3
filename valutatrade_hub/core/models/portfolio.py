@@ -1,7 +1,6 @@
 from typing import Optional
 
 from .wallet import Wallet
-from .user import User
 from valutatrade_hub.core.utils.currency_rates import get_exchange_rate
 from enum import Enum
 
@@ -12,20 +11,20 @@ class ProtfolioJsonKeys(Enum):
 
 
 class Portfolio:
-    def __init__(self, user: User, wallets: dict[str, Wallet] = None):
+    def __init__(self, user_id: int, wallets: dict[str, Wallet] = None):
         """
         Портфель пользователя.
 
-        :param user: пользователь.
+        :param user_id: id пользователя.
 
         :param wallets: словарь с кошельками пользователя вида
             {код валюты: Wallet}
         """
-        self._user = user
+        self._user = user_id
         self._wallets = wallets if wallets is not None else {}
 
     @property
-    def user(self) -> User:
+    def user(self) -> int:
         return self._user
 
     @property
@@ -46,7 +45,7 @@ class Portfolio:
             )
         self._wallets[currency_code] = Wallet(currency_code, 0)
 
-    def get_total_value(self, base_currency='USD') -> float:
+    def get_total_value(self, base_currency="USD") -> float:
         """
         Получить общую стоимость портфеля в указанной валюте.
 
@@ -57,6 +56,8 @@ class Portfolio:
 
         :raises requests.exceptions.RequestException: если произошла ошибка
             при запросе к API.
+
+        :raises ValueError: если не удалось получить курс для валюты.
         """
         rates = get_exchange_rate(base_currency)
         total_value = 0
@@ -64,7 +65,11 @@ class Portfolio:
             if currency_code == base_currency:
                 total_value += wallet.balance
             else:
-                rate = rates[currency_code]
+                rate = rates.get(currency_code)
+                if rate is None:
+                    raise ValueError(
+                        f"Не удалось получить курс для валюты {currency_code}"
+                    )
                 total_value += wallet.balance / rate
         return total_value
 
@@ -79,6 +84,6 @@ class Portfolio:
 
     def dump(self) -> dict:
         return {
-            ProtfolioJsonKeys.user.value: self._user.user_id,
+            ProtfolioJsonKeys.user.value: self._user,
             ProtfolioJsonKeys.wallets.value: self._wallets
         }

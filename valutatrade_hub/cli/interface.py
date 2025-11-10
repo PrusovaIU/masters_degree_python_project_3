@@ -72,6 +72,10 @@ class Engine:
         except core.UnknownUserError as e:
             print(f"Пользователь \"{e}\" не найден")
 
+    @CommandHandler(Commands.show_portfolio)
+    def show_portfolio(self, command_args: CommandArgsType) -> None:
+        base = command_args.get("base", "USD")
+
 
     @staticmethod
     def _input() -> tuple[Commands, Optional[str]]:

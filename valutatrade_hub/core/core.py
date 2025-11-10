@@ -223,3 +223,8 @@ class Core:
         except IndexError:
             raise UnknownUserError(username)
 
+    def get_portfolio(self, user: User) -> list[Portfolio]:
+        return [
+            portfolio for portfolio in self._portfolios
+            if portfolio.user == user
+        ]
