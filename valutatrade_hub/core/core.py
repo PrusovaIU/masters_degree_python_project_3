@@ -33,6 +33,13 @@ class Core:
 
     @staticmethod
     def _load_users() -> list[User]:
+        """
+        Загрузка данных о пользователях.
+
+        :return: список пользователей.
+
+        :raises CoreError: если не удалось загрузить данные о пользователях.
+        """
         try:
             data: list[dict] = data_utils.load_data(User)
             objs: list[User] = []
@@ -49,6 +56,13 @@ class Core:
         return objs
 
     def _load_portfolios(self) -> list[Portfolio]:
+        """
+        Загрузка данных о портфелях.
+
+        :return: список портфелей.
+
+        :raises CoreError: если не удалось загрузить данные о портфелях.
+        """
         try:
             data: list[dict] = data_utils.load_data(Portfolio)
             objs: list[Portfolio] = []

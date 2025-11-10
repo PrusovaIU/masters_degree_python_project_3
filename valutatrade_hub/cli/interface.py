@@ -19,6 +19,11 @@ class Engine:
 
     @CommandHandler(Commands.exit)
     def exit(self) -> None:
+        """
+        Обработчик команды exit.
+
+        :return: None.
+        """
         answer: Optional[str] = None
         while not answer:
             data = input("> Вы уверены, что хотите выйти? (y/n) ").lower()
@@ -28,6 +33,12 @@ class Engine:
 
     @CommandHandler(Commands.register)
     def register(self, command_args: CommandArgsType) -> None:
+        """
+        Обработчик команды register.
+
+        :param command_args: аргументы команды.
+        :return: None.
+        """
         try:
             username = command_args["username"]
             password = command_args["password"]
@@ -47,6 +58,11 @@ class Engine:
 
     @staticmethod
     def _input() -> tuple[Commands, Optional[str]]:
+        """
+        Ввод команды.
+
+        :return: кортеж из команды и аргументов.
+        """
         data: Optional[str] = None
         while not data:
             data = input("> ")
@@ -59,6 +75,11 @@ class Engine:
             raise UnknownCommandError(command)
 
     def run(self) -> None:
+        """
+        Запуск интерактивного режима.
+
+        :return: None
+        """
         while not self._exit:
             try:
                 command, args = self._input()
