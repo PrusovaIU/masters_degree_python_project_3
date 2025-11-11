@@ -130,7 +130,7 @@ class Engine:
             for wallet, balance in wallets.items():
                 data.append(
                     f"- {wallet.currency_code}: {wallet.balance} "
-                    f"-> {balance} {base}"
+                    f"-> {balance:,.2f} {base}"
                 )
             portfolio: models.Portfolio = self._core.get_portfolio(
                 self._current_user.user_id

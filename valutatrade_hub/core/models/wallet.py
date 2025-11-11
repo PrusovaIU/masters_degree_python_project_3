@@ -1,3 +1,8 @@
+from enum import Enum
+
+
+class WalletJsonKeys(Enum):
+    balance = "balance"
 
 
 class Wallet:
@@ -77,7 +82,11 @@ class Wallet:
                 )
             return self.balance / rate
 
+    @classmethod
+    def load(cls, currency_code: str, data: dict):
+        return cls(currency_code, data[WalletJsonKeys.balance.value])
+
     def dump(self) -> dict:
         return {
-            "balance": self._balance
+            WalletJsonKeys.balance.value: self._balance
         }

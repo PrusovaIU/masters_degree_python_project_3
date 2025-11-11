@@ -32,7 +32,13 @@ class DumpClassProtocol(Protocol):
     def dump(self) -> dict: ...
 
 
+class LoadClassProtocol(Protocol):
+    @classmethod
+    def load(cls, data: dict) -> "LoadClassProtocol": ...
+
+
 DC = TypeVar("DC", bound=DumpClassProtocol)
+LC = TypeVar("LC", bound=LoadClassProtocol)
 T = TypeVar("T")
 
 
@@ -51,7 +57,7 @@ class Core:
         return [user.username for user in self._users]
 
     @staticmethod
-    def _load_data(obj: Type[T]) -> list[T]:
+    def _load_data(obj: Type[LC]) -> list[LC]:
         """
         Загрузка данных из файла.
 
@@ -62,14 +68,14 @@ class Core:
         """
         try:
             data: list[dict] = data_utils.load_data(obj)
-            objs: list[T] = []
-            for i, user in enumerate(data):
-                objs.append(obj(**user))
+            objs: list[LC] = []
+            for i, item in enumerate(data):
+                objs.append(obj.load(item))
         except data_utils.DataError as e:
             raise LoadDataError(
                 f"Невозможно загрузить данные \"{obj.__name__}\": {e}"
             )
-        except TypeError as e:
+        except (KeyError, TypeError) as e:
             raise LoadDataError(
                 f"Неверный формат данных: "
                 f"{e} ({obj.__name__} [{i}])"

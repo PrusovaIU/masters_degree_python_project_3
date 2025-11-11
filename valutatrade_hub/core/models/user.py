@@ -118,6 +118,16 @@ class User:
         hash_password = self._hash_password(password)
         return hash_password == self._hashed_password
 
+    @classmethod
+    def load(cls, data: dict) -> "User":
+        """
+        Создание нового экземпляра класса из словаря.
+
+        :param data: данные пользователя.
+        :return: новый экземпляр класса.
+        """
+        return cls(**data)
+
     def dump(self) -> dict:
         """
         :return: информация о пользователе в виде словаря.
