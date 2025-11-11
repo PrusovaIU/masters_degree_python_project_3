@@ -1,4 +1,5 @@
 from enum import Enum
+from valutatrade_hub.core.utils.currency_rates import UnknownCurrencyError
 
 
 class WalletJsonKeys(Enum):
@@ -77,9 +78,7 @@ class Wallet:
         else:
             rate = rates.get(self.currency_code)
             if rate is None:
-                raise ValueError(
-                    f"Не удалось получить курс для валюты {self.currency_code}"
-                )
+                raise UnknownCurrencyError(self.currency_code)
             return self.balance / rate
 
     @classmethod

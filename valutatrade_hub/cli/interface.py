@@ -218,11 +218,16 @@ class Engine:
 
         else:
             amount = abs(info.amount)
-            evaluative_amount: float = amount / info.rate
+            if info.rate:
+                rate = info.rate
+                evaluative_amount: float = amount / info.rate
+            else:
+                rate = -1
+                evaluative_amount = -1
             print(
                 f"{operation_type.value.capitalize()} выполнена: "
                 f"{amount:,.4f} {info.currency} "
-                f"по курсу {info.rate:,.2f} "
+                f"по курсу {rate:,.2f} "
                 f"{self.BASE_CURRENCY}/{info.currency}\n"
                 f"Изменения в портфеле:\n"
                 f"- {info.currency}: было {info.before_balance:,.4f} "

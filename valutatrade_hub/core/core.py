@@ -4,8 +4,7 @@ import requests
 
 from .models import User, Wallet, Portfolio, OperationInfo
 from .utils import data as data_utils
-from .utils.currency_rates import (get_exchange_rate, RatesType,
-                                   CurrencyRatesError)
+from .utils import currency_rates as cr
 from typing import TypeVar, Type, Protocol, Optional
 from .exceptions import CoreError
 
@@ -276,7 +275,7 @@ class Core:
             если не удалось получить курс валюты.
         """
         portfolio = self.get_portfolio(user_id)
-        rates: RatesType = get_exchange_rate(base_currency)
+        rates: cr.RatesType = cr.get_exchange_rate(base_currency)
         data = {}
         for wallet in portfolio.wallets.values():
             data[wallet] = wallet.convert(base_currency, rates)
@@ -364,13 +363,12 @@ class Core:
         wallet.balance += operation_info.amount
         try:
             self._save_data(Portfolio, self._portfolios)
-            rates: RatesType = get_exchange_rate(operation_info.base_currency)
-            operation_info.rate = rates[operation_info.currency]
-        except CurrencyRatesError as e:
+            operation_info.after_balance = wallet.balance
+            operation_info.rate = cr.get_rate(
+                operation_info.base_currency, operation_info.currency
+            )
+        except cr.CurrencyRatesError as e:
             print(e)
         except SaveDataError as e:
             wallet.balance -= operation_info.amount
             raise e
-        else:
-            operation_info.after_balance = wallet.balance
-
