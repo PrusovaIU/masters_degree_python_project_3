@@ -2,7 +2,7 @@ from typing import Optional
 
 from valutatrade_hub.core import core
 from .commands import Commands, CommandHandler, CommandArgsType
-from valutatrade_hub.core.models import User, Wallet
+from valutatrade_hub.core.models import User, Wallet, Portfolio
 
 
 
@@ -94,6 +94,10 @@ class Engine:
                     f"- {wallet.currency_code}: {wallet.balance} "
                     f"-> {balance} {base}"
                 )
+            portfolio: Portfolio = self._core.get_portfolio(
+                self._current_user.user_id
+            )
+            total_balance: float = portfolio.get_total_value(base)
         except core.UnknownUserError:
             print(
                 f"Не найден портфель для пользователя "
@@ -106,9 +110,10 @@ class Engine:
             print(
                 f"Портфель пользователя \"{self._current_user.username}\" "
                 f"(база: {base}):\n"
-                f"{portfolio_info}"
+                f"{portfolio_info}\n"
+                f"--------------------------\n"
+                f"ИТОГО: {total_balance:,.2f} {base}"
             )
-
 
     @staticmethod
     def _input() -> tuple[Commands, Optional[str]]:
