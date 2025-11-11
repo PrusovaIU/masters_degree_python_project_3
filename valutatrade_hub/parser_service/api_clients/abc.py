@@ -21,22 +21,11 @@ class BaseApiClient(metaclass=ABCMeta):
         self._max_history_size = max_history_size
 
     @abstractmethod
-    def url(self) -> str:
+    def _request(self) -> list[models.ExchangeRate]:
         """
-        :return: URL для обращения к API.
-        """
-        pass
+        Запрос к API.
 
-    @abstractmethod
-    def parse_response(
-            self,
-            response: requests.Response
-    ) -> list[models.ExchangeRate]:
-        """
-        Парсинг ответа от API.
-
-        :param response: ответ от API.
-        :return: список курсов валют.
+        :return: список журнальных записей.
         """
         pass
 
@@ -69,11 +58,7 @@ class BaseApiClient(metaclass=ABCMeta):
         :raises BACRequestError: ошибка при обращении к API.
         """
         try:
-            response: requests.Response = requests.get(
-                self.url(),
-                timeout=self._request_timeout
-            )
-            data = self.parse_response(response)
+            data = self._request()
             self._history.extend(data)
             if len(self._history) > self._max_history_size:
                 self._history = self._history[-self._max_history_size:]

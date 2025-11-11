@@ -20,11 +20,10 @@ class ParserConfig:
         # Списки валют
         self.base_currency: str = "USD"
         self.fiat_currencies: tuple[str, ...] = ("EUR", "GBP", "RUB")
-        self.crypto_currencies: tuple[str, ...] = ("BTC", "ETH", "SOL")
-        self.crypto_id_map: dict[str, str] = {
-            "BTC": "bitcoin",
-            "ETH": "ethereum",
-            "SOL": "solana",
+        self.crypto_currencies: dict[str, str] = {
+            "bitcoin": "BTC",
+            "ethereum": "ETH",
+            "solana": "SOL"
         }
 
         # Пути
@@ -64,4 +63,4 @@ class ParserConfig:
             raise ConfigError(f"Ошибка чтения файла {file_path}: {e}")
 
 
-
+CONFIG = ParserConfig()

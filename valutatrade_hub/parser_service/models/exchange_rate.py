@@ -8,7 +8,7 @@ class ExchangeRateMeta:
     raw_id: str
     request_ms: int
     status_code: HTTPStatus
-    etag: str
+    etag: str = field(default="W/\"abc123\"")
 
 
 class SimpleExchangeRateJsonKeys(Enum):
@@ -17,6 +17,7 @@ class SimpleExchangeRateJsonKeys(Enum):
     to_currency = "to_currency"
     rate = "rate"
     source = "source"
+
 
 class ExchangeRateJsonKeys(Enum):
     timestamp = "timestamp"
