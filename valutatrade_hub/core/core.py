@@ -11,20 +11,35 @@ from .exceptions import CoreError
 
 
 class UserError(CoreError):
+    """
+    Класс ошибки взаимодействия с пользователем.
+    """
     pass
 
 class UserIsAlreadyExistError(UserError):
+    """
+    Класс ошибки регистрации нового пользователя с уже существующим именем.
+    """
     pass
 
 class UnknownUserError(UserError):
+    """
+    Класс ошибки при обращении к несуществующему пользователю.
+    """
     pass
 
 
 class LoadDataError(CoreError):
+    """
+    Класс ошибки загрузки данных.
+    """
     pass
 
 
 class SaveDataError(CoreError):
+    """
+    Класс ошибки сохранения данных.
+    """
     pass
 
 
@@ -39,7 +54,6 @@ class LoadClassProtocol(Protocol):
 
 DC = TypeVar("DC", bound=DumpClassProtocol)
 LC = TypeVar("LC", bound=LoadClassProtocol)
-T = TypeVar("T")
 
 
 class Core:

@@ -17,6 +17,9 @@ class UnknownCommandError(EngineError):
 
 
 def check_login(func: CommandHandlerType) -> CommandHandlerType:
+    """
+    Декоратор для проверки, был ли авторизован пользователь.
+    """
     @wraps(func)
     def wrapper(self, *args, **kwargs):
         if not self._current_user:
@@ -118,6 +121,12 @@ class Engine:
             self,
             command_args: Optional[CommandArgsType] = None
     ) -> None:
+        """
+        Обработчик команды show_portfolio.
+
+        :param command_args: аргументы команды.
+        :return: None.
+        """
         base: str = command_args["base"] if command_args \
             else self.BASE_CURRENCY
         data = []
@@ -156,6 +165,12 @@ class Engine:
     @CommandHandler(Commands.buy)
     @check_login
     def buy(self, command_args: CommandArgsType) -> None:
+        """
+        Обработчик команды buy.
+
+        :param command_args: аргументы команды.
+        :return: None.
+        """
         try:
             currency: str = command_args["currency"].upper()
             if not currency:
