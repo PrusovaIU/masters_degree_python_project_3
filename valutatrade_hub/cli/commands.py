@@ -9,6 +9,7 @@ class Commands(Enum):
     register = "register"
     login = "login"
     show_portfolio = "show-portfolio"
+    buy = "buy"
     exit = "exit"
 
 
@@ -48,7 +49,7 @@ class CommandHandler:
 
         :raises ValueError: если аргументы команды не соответствуют формату.
         """
-        matching = re.match(r"^(--\w+ \w+ ?)+$", command_args)
+        matching = re.match(r"^(--\w+ (\w+|[\d\.]+) ?)+$", command_args)
         if not matching:
             raise ValueError("Неверный формат аргументов команды")
 
@@ -69,7 +70,7 @@ class CommandHandler:
             return {}
         cls._check_command_args(command_args)
         args: list[tuple[str, str]] = re.findall(
-            r"--(\w+) (\w+)",
+            r"--(\w+) ([\w\.]+)",
             command_args
         )
         return {arg[0]: arg[1] for arg in args}

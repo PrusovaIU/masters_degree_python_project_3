@@ -1,3 +1,8 @@
+from enum import Enum
+
+
+class WalletJsonKeys(Enum):
+    balance = "balance"
 
 
 class Wallet:
@@ -23,14 +28,15 @@ class Wallet:
             raise ValueError("Баланс не может быть отрицательным")
         self._balance = value
 
-    def deposit(self, amount: float) -> None:
+    def deposit(self, amount: float) -> float:
         """
         Пополнение баланса.
 
         :param amount: сумма пополнения.
-        :return: None.
+        :return: остаток на счете.
         """
-        self._balance += amount
+        self.balance += amount
+        return self._balance
 
     def withdraw(self, amount: float) -> float:
         """
@@ -76,7 +82,11 @@ class Wallet:
                 )
             return self.balance / rate
 
+    @classmethod
+    def load(cls, currency_code: str, data: dict):
+        return cls(currency_code, data[WalletJsonKeys.balance.value])
+
     def dump(self) -> dict:
         return {
-            "balance": self._balance
+            WalletJsonKeys.balance.value: self._balance
         }

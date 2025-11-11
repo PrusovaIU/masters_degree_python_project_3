@@ -31,7 +31,7 @@ class Portfolio:
     def wallets(self) -> dict[str, Wallet]:
         return self._wallets
 
-    def add_currency(self, currency_code: str) -> None:
+    def add_currency(self, currency_code: str) -> Wallet:
         """
         Добавляет кошелек для указанной валюты.
 
@@ -43,7 +43,9 @@ class Portfolio:
                 f"У пользователя {self._user.user_id} уже есть кошелек для "
                 f"валюты {currency_code}"
             )
-        self._wallets[currency_code] = Wallet(currency_code, 0)
+        new_wallet = Wallet(currency_code, 0)
+        self._wallets[currency_code] = new_wallet
+        return new_wallet
 
     def get_total_value(self, base_currency="USD") -> float:
         """
@@ -74,8 +76,21 @@ class Portfolio:
         """
         return self._wallets.get(currency_code)
 
+    @classmethod
+    def load(cls, data: dict) -> "Portfolio":
+        user_id = data[ProtfolioJsonKeys.user.value]
+        wallets_data = data[ProtfolioJsonKeys.wallets.value]
+        wallets = {}
+        for currency_code, wallet in wallets_data.items():
+            wallets[currency_code] = Wallet.load(currency_code, wallet)
+        return cls(user_id, wallets)
+
+
     def dump(self) -> dict:
         return {
             ProtfolioJsonKeys.user.value: self._user,
-            ProtfolioJsonKeys.wallets.value: self._wallets
+            ProtfolioJsonKeys.wallets.value: {
+                wallet.currency_code: wallet.dump()
+                for wallet in self._wallets.values()
+            }
         }
