@@ -1,6 +1,8 @@
 
 
 class Wallet:
+    BASE_CURRENCY = "USD"
+
     def __init__(self, currency_code: str, balance: float):
         """
         Класс кошелька.
@@ -23,14 +25,15 @@ class Wallet:
             raise ValueError("Баланс не может быть отрицательным")
         self._balance = value
 
-    def deposit(self, amount: float) -> None:
+    def deposit(self, amount: float) -> float:
         """
         Пополнение баланса.
 
         :param amount: сумма пополнения.
-        :return: None.
+        :return: остаток на счете.
         """
-        self._balance += amount
+        self.balance += amount
+        return self._balance
 
     def withdraw(self, amount: float) -> float:
         """

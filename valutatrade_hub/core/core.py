@@ -6,7 +6,7 @@ from .models import User, Wallet
 from .models.portfolio import Portfolio, ProtfolioJsonKeys
 from .utils import data as data_utils
 from .utils.currency_rates import get_exchange_rate, RatesType
-from typing import TypeVar, Type, Protocol
+from typing import TypeVar, Type, Protocol, Optional
 
 
 class CoreError(Exception):
@@ -245,4 +245,11 @@ class Core:
         except requests.RequestException as e:
             raise CoreError(f"Ошибка при получении данных: {e}")
         return data
+
+    def buy(self, user_id: int, currency: str, amount: float) -> float:
+        portfolio = self.get_portfolio(user_id)
+        wallet: Optional[Wallet] = portfolio.get_wallet(currency)
+        if wallet is None:
+            wallet = portfolio.add_currency(currency)
+        balance: float = wallet.deposit(amount)
 
