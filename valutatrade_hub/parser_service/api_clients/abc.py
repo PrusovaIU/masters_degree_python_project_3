@@ -7,7 +7,7 @@ class BaseApiClientError(Exception):
     pass
 
 
-class BACRequestError(BaseApiClientError):
+class ApiRequestError(BaseApiClientError):
     pass
 
 
@@ -44,6 +44,12 @@ class BaseApiClient(metaclass=ABCMeta):
     def _form_rages(
             exchange_rates: list[models.ExchangeRate]
     ) -> RagesType:
+        """
+        Формирование словаря курсов валют.
+
+        :param exchange_rates: список журнальных записей.
+        :return: словарь курсов валют виз {from_currency_to_currency: Rate}.
+        """
         rates = {}
         for item in exchange_rates:
             key = f"{item.from_currency}_{item.to_currency}"
@@ -54,7 +60,7 @@ class BaseApiClient(metaclass=ABCMeta):
             )
         return rates
 
-    def get_data(self) -> RagesType:
+    def fetch_rates(self) -> RagesType:
         """
         Получение данных от API.
 
@@ -73,5 +79,4 @@ class BaseApiClient(metaclass=ABCMeta):
                 self._history = self._history[-self._max_history_size:]
             return self._form_rages(data)
         except requests.RequestException as e:
-            raise BACRequestError(f"{e} ({e.__class__.__name__})")
-
+            raise ApiRequestError(f"{e} ({e.__class__.__name__})")
