@@ -2,8 +2,7 @@ import secrets
 
 import requests
 
-from .models import User, Wallet
-from .models.portfolio import Portfolio, ProtfolioJsonKeys
+from .models import User, Wallet, Portfolio, BuyInfo
 from .utils import data as data_utils
 from .utils.currency_rates import get_exchange_rate, RatesType
 from typing import TypeVar, Type, Protocol, Optional
@@ -203,6 +202,9 @@ class Core:
 
         :param user_id: ID пользователя.
         :return: портфель пользователя.
+
+        :raises UnknownUserError: если портфель для указанного пользователя
+            не найден.
         """
         try:
             return [
@@ -246,10 +248,34 @@ class Core:
             raise CoreError(f"Ошибка при получении данных: {e}")
         return data
 
-    def buy(self, user_id: int, currency: str, amount: float) -> float:
+    def buy(self, user_id: int, buy_info: BuyInfo) -> None:
+        """
+        Покупка валюты.
+
+        :param user_id: ID пользователя.
+        :param buy_info: информация о покупке.
+        :return: None.
+
+        :raises UnknownUserError: если портфель для указанного пользователя
+            не найден.
+
+        :raises ValueError: если переданы некорректные данные.
+        """
+        # получить кошелек для требуемой валюты:
         portfolio = self.get_portfolio(user_id)
-        wallet: Optional[Wallet] = portfolio.get_wallet(currency)
+        wallet: Optional[Wallet] = portfolio.get_wallet(buy_info.currency)
         if wallet is None:
-            wallet = portfolio.add_currency(currency)
-        balance: float = wallet.deposit(amount)
+            wallet = portfolio.add_currency(buy_info.currency)
+        buy_info.before_balance = wallet.balance
+        buy_info.wallet = wallet
+        # увеличить баланс кошелька:
+        balance: float = wallet.deposit(buy_info.amount)
+        buy_info.after_balance = balance
+        # получить текущий курс базовая валюта -> требуемая валюта:
+        try:
+            rates: RatesType = get_exchange_rate(buy_info.base_currency)
+            buy_info.rate = rates[buy_info.currency]
+        except requests.RequestException as e:
+            print(f"Не удалось получить курс валюты: {e}")
+
 

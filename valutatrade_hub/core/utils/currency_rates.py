@@ -1,4 +1,5 @@
 from requests import get, Response
+import threading
 
 
 RatesType = dict[str, float]

@@ -1,8 +1,6 @@
 
 
 class Wallet:
-    BASE_CURRENCY = "USD"
-
     def __init__(self, currency_code: str, balance: float):
         """
         Класс кошелька.
