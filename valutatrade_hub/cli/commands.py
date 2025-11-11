@@ -10,6 +10,7 @@ class Commands(Enum):
     login = "login"
     show_portfolio = "show-portfolio"
     buy = "buy"
+    sell = "sell"
     exit = "exit"
 
 

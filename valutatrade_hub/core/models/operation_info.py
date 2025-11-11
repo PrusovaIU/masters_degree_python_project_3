@@ -4,7 +4,7 @@ from .wallet import Wallet
 
 
 @dataclass
-class BuyInfo:
+class OperationInfo:
     """
     Информация о покупке
     """

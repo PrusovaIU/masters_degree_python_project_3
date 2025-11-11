@@ -5,7 +5,8 @@ from .commands import (Commands, CommandHandler, CommandArgsType,
                        CommandHandlerType)
 from valutatrade_hub.core import models
 from functools import wraps
-from re import match
+import re
+from enum import Enum
 
 
 class EngineError(Exception):
@@ -14,6 +15,11 @@ class EngineError(Exception):
 
 class UnknownCommandError(EngineError):
     pass
+
+
+class BalanceOperationType(Enum):
+    buy = "покупка"
+    sell = "продажа"
 
 
 def check_login(func: CommandHandlerType) -> CommandHandlerType:
@@ -49,7 +55,7 @@ class Engine:
 
         :raises ValueError: если строка value содержит недопустимые символы.
         """
-        if not match(r"^\w+$", value):
+        if not re.match(r"^\w+$", value):
             raise ValueError(
                 f"Параметр {value_title} должен содержать только буквы, цифры "
                 f"и символ подчеркивания"
@@ -91,12 +97,8 @@ class Engine:
             )
         except KeyError as e:
             print(f"Не передан обязательный параметр: {e}")
-        except ValueError as e:
-            print(f"Переданы некорректные данные: {e}")
         except core.UserIsAlreadyExistError as e:
             print(f"Имя пользователя \"{e}\" уже занято")
-        except core.CoreError as e:
-            print(e)
 
     @CommandHandler(Commands.login)
     def login(self, command_args: CommandArgsType) -> None:
@@ -110,8 +112,6 @@ class Engine:
             print(f"Вы вошли как \"{self._current_user.username}\"")
         except KeyError as e:
             print(f"Не передан обязательный параметр: {e}")
-        except ValueError as e:
-            print(e)
         except core.UnknownUserError as e:
             print(f"Пользователь \"{e}\" не найден")
 
@@ -138,7 +138,7 @@ class Engine:
                 )
             for wallet, balance in wallets.items():
                 data.append(
-                    f"- {wallet.currency_code}: {wallet.balance} "
+                    f"- {wallet.currency_code}: {wallet.balance:,.2f} "
                     f"-> {balance:,.2f} {base}"
                 )
             portfolio: models.Portfolio = self._core.get_portfolio(
@@ -150,8 +150,6 @@ class Engine:
                 f"Не найден портфель для пользователя "
                 f"\"{self._current_user.username}\""
             )
-        except core.CoreError as e:
-            print(e)
         else:
             portfolio_info = "\n".join(data) if data else "Портфель пуст"
             print(
@@ -171,31 +169,65 @@ class Engine:
         :param command_args: аргументы команды.
         :return: None.
         """
+        self._balance_operation(command_args, BalanceOperationType.buy)
+
+    @CommandHandler(Commands.sell)
+    @check_login
+    def sell(self, command_args: CommandArgsType) -> None:
+        """
+        Обработчик команды sell.
+
+        :param command_args: аргументы команды.
+        :return: None.
+        """
+        try:
+            self._balance_operation(command_args, BalanceOperationType.sell)
+        except core.UnknownWalletError as err:
+            print(
+                f"У Вас нет кошелька \"{err.currency}\". "
+                f"Добавьте валюту: она создаётся автоматически при "
+                f"первой покупке."
+            )
+
+    def _balance_operation(
+            self,
+            command_args: CommandArgsType,
+            operation_type: BalanceOperationType
+    ) -> None:
+        """
+        Обработчик операций с балансом.
+
+        :param command_args: аргументы команды.
+        :param operation_type: тип операции.
+        :return: None.
+        """
         try:
             currency: str = command_args["currency"].upper()
-            if not currency:
-                raise ValueError("Не указана валюта")
             amount: float = float(command_args["amount"])
-            if amount <= 0:
-                raise ValueError(
-                    f"Некорректная сумма покупки: {amount} <= 0"
-                )
-            buy_info = models.BuyInfo(amount, currency, self.BASE_CURRENCY)
-            self._core.buy(self._current_user.user_id, buy_info)
+            if operation_type == BalanceOperationType.sell:
+                amount = -amount
+                create_wallet = False
+            else:
+                create_wallet = True
+            info = models.OperationInfo(amount, currency, self.BASE_CURRENCY)
+            self._core.balance_operation(
+                self._current_user.user_id, info, create_wallet
+            )
         except KeyError as e:
             print(f"Не передан обязательный параметр: {e}")
-        except (ValueError, core.CoreError) as e:
-            print(e)
+
         else:
-            evaluative_amount: float = buy_info.amount / buy_info.rate
+            amount = abs(info.amount)
+            evaluative_amount: float = amount / info.rate
             print(
-                f"Покупка выполнена: {buy_info.amount:,.4f} "
-                f"{buy_info.currency} по курсу {buy_info.rate:,.2f} "
-                f"{self.BASE_CURRENCY}/{buy_info.currency}\n"
+                f"{operation_type.value.capitalize()} выполнена: "
+                f"{amount:,.4f} {info.currency} "
+                f"по курсу {info.rate:,.2f} "
+                f"{self.BASE_CURRENCY}/{info.currency}\n"
                 f"Изменения в портфеле:\n"
-                f"- {buy_info.currency}: было {buy_info.before_balance:,.4f} "
-                f"-> стало {buy_info.after_balance:,.4f}\n"
-                f"Оценочная стоимость покупки: "
+                f"- {info.currency}: было {info.before_balance:,.4f} "
+                f"-> стало {info.after_balance:,.4f}\n"
+                f"Оценочная стоимость: "
                 f"{evaluative_amount:,.2f} {self.BASE_CURRENCY}"
             )
 
@@ -229,4 +261,6 @@ class Engine:
                 CommandHandler.handle(command, args, self)
             except UnknownCommandError as e:
                 print(f"Неизвестная команда: \"{e}\"")
+            except (ValueError, core.CoreError) as e:
+                print(e)
         print("Завершение работы...")

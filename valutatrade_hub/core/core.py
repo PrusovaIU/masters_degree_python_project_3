@@ -2,7 +2,7 @@ import secrets
 
 import requests
 
-from .models import User, Wallet, Portfolio, BuyInfo
+from .models import User, Wallet, Portfolio, OperationInfo
 from .utils import data as data_utils
 from .utils.currency_rates import (get_exchange_rate, RatesType,
                                    CurrencyRatesError)
@@ -27,6 +27,19 @@ class UnknownUserError(UserError):
     Класс ошибки при обращении к несуществующему пользователю.
     """
     pass
+
+
+class UnknownWalletError(CoreError):
+    """
+    Класс ошибки при обращении к несуществующему кошельку.
+    """
+    def __init__(self, user_id: int, currency: str):
+        self.user_id = user_id
+        self.currency = currency
+
+    def __str__(self):
+        return (f"Не существует кошелек для пользователя {self.user_id} "
+                f"в валюте {self.currency}")
 
 
 class LoadDataError(CoreError):
@@ -269,16 +282,66 @@ class Core:
             data[wallet] = wallet.convert(base_currency, rates)
         return data
 
-    def buy(self, user_id: int, buy_info: BuyInfo) -> None:
+    def get_wallet(
+            self,
+            user_id: int,
+            currency: str,
+            create_wallet: bool
+    ) -> Wallet:
+        """
+        Получение кошелька пользователя.
+
+        Если кошелек не существует, и параметр create_wallet равен True,
+        то будет создан новый кошелек. Иначе будет выброшено исключение.
+
+        :param user_id: ID пользователя.
+
+        :param currency: код валюты.
+
+        :param create_wallet: если не существует кошелек для указанного
+            пользователя в указанной валюте, и данный параметр равен True,
+            то будет создан новый кошелек.
+
+        :return: кошелек пользователя в указанной валюте.
+
+        :raises UnknownWalletError: если кошелек для указанного пользователя
+            в указанной валюты не существует, и параметр
+            create_wallet равен False.
+        """
+        portfolio = self.get_portfolio(user_id)
+        wallet: Optional[Wallet] = portfolio.get_wallet(currency)
+        if wallet is None:
+            if create_wallet:
+                wallet = portfolio.add_currency(currency)
+            else:
+                raise UnknownWalletError(user_id, currency)
+        return wallet
+
+    def balance_operation(
+            self,
+            user_id: int,
+            operation_info: OperationInfo,
+            create_wallet: bool
+    ) -> None:
         """
         Покупка валюты.
 
         :param user_id: ID пользователя.
-        :param buy_info: информация о покупке.
+
+        :param operation_info: информация об операции.
+
+        :param create_wallet: если не существует кошелек для указанного
+            пользователя в указанной валюте, и данный параметр равен True,
+            то будет создан новый кошелек.
+
         :return: None.
 
         :raises UnknownUserError: если портфель для указанного пользователя
             не найден.
+
+        :raises UnknownWalletError: если кошелек для указанного пользователя
+            в указанной валюты не существует, и параметр
+            create_wallet равен False.
 
         :raises ValueError: если переданы некорректные данные.
 
@@ -287,22 +350,27 @@ class Core:
 
         :raises CoreError: если не удалось совершить покупку.
         """
-        portfolio = self.get_portfolio(user_id)
-        wallet: Optional[Wallet] = portfolio.get_wallet(buy_info.currency)
-        if wallet is None:
-            wallet = portfolio.add_currency(buy_info.currency)
-        buy_info.before_balance = wallet.balance
-        buy_info.wallet = wallet
-        balance: float = wallet.deposit(buy_info.amount)
+        wallet = self.get_wallet(
+            user_id, operation_info.currency, create_wallet
+        )
+        operation_info.before_balance = wallet.balance
+        operation_info.wallet = wallet
+        amount_abs = abs(operation_info.amount)
+        if amount_abs > wallet.balance:
+            raise ValueError(
+                f"Недостаточно средств: доступно {wallet.balance:,.4f}, "
+                f"требуется {amount_abs:,.4f}"
+            )
+        wallet.balance += operation_info.amount
         try:
             self._save_data(Portfolio, self._portfolios)
-            rates: RatesType = get_exchange_rate(buy_info.base_currency)
-            buy_info.rate = rates[buy_info.currency]
+            rates: RatesType = get_exchange_rate(operation_info.base_currency)
+            operation_info.rate = rates[operation_info.currency]
         except CurrencyRatesError as e:
             print(e)
         except SaveDataError as e:
-            wallet.balance -= buy_info.amount
+            wallet.balance -= operation_info.amount
             raise e
         else:
-            buy_info.after_balance = balance
+            operation_info.after_balance = wallet.balance
 
