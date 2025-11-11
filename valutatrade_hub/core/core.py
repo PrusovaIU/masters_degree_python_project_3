@@ -4,12 +4,10 @@ import requests
 
 from .models import User, Wallet, Portfolio, BuyInfo
 from .utils import data as data_utils
-from .utils.currency_rates import get_exchange_rate, RatesType
+from .utils.currency_rates import (get_exchange_rate, RatesType,
+                                   CurrencyRatesError)
 from typing import TypeVar, Type, Protocol, Optional
-
-
-class CoreError(Exception):
-    pass
+from .exceptions import CoreError
 
 
 class UserError(CoreError):
@@ -19,6 +17,14 @@ class UserIsAlreadyExistError(UserError):
     pass
 
 class UnknownUserError(UserError):
+    pass
+
+
+class LoadDataError(CoreError):
+    pass
+
+
+class SaveDataError(CoreError):
     pass
 
 
@@ -52,7 +58,7 @@ class Core:
         :param obj: класс объекта.
         :return: список объектов.
 
-        :raises CoreError: если не удалось загрузить данные.
+        :raises LoadDataError: если не удалось загрузить данные.
         """
         try:
             data: list[dict] = data_utils.load_data(obj)
@@ -60,11 +66,11 @@ class Core:
             for i, user in enumerate(data):
                 objs.append(obj(**user))
         except data_utils.DataError as e:
-            raise CoreError(
+            raise LoadDataError(
                 f"Невозможно загрузить данные \"{obj.__name__}\": {e}"
             )
         except TypeError as e:
-            raise CoreError(
+            raise LoadDataError(
                 f"Неверный формат данных: "
                 f"{e} ({obj.__name__} [{i}])"
             )
@@ -79,12 +85,12 @@ class Core:
         :param data: список объектов.
         :return: None.
 
-        :raises CoreError: если не удалось сохранить данные.
+        :raises SaveDataError: если не удалось сохранить данные.
         """
         dumps_data: list[dict] = [el.dump() for el in data]
         try:
             data_utils.save_data(obj, dumps_data)
-        except data_utils.DataError as e:
+        except (TypeError, data_utils.DataError) as e:
             raise CoreError(
                 f"Невозможно сохранить данные \"{obj.__name__}\": {e}"
             )
@@ -232,20 +238,15 @@ class Core:
 
         :raises UnknownUserError: если портфель для указанного пользователя
             не найден.
+
+        :raises valutatrade_hub.core.utils.currency_rates.CurrencyRatesError:
+            если не удалось получить курс валюты.
         """
-        try:
-            portfolio = self.get_portfolio(user_id)
-            rates: RatesType = get_exchange_rate(base_currency)
-            data = {}
-            for wallet in portfolio.wallets.values():
-                data[wallet] = wallet.convert(base_currency, rates)
-        except requests.HTTPError as e:
-            if e.response.status_code == 404:
-                raise CoreError(f"Неизвестная базовая валюта: {base_currency}")
-            else:
-                raise CoreError(f"Ошибка при получении данных: {e}")
-        except requests.RequestException as e:
-            raise CoreError(f"Ошибка при получении данных: {e}")
+        portfolio = self.get_portfolio(user_id)
+        rates: RatesType = get_exchange_rate(base_currency)
+        data = {}
+        for wallet in portfolio.wallets.values():
+            data[wallet] = wallet.convert(base_currency, rates)
         return data
 
     def buy(self, user_id: int, buy_info: BuyInfo) -> None:
@@ -260,22 +261,28 @@ class Core:
             не найден.
 
         :raises ValueError: если переданы некорректные данные.
+
+        :raises valutatrade_hub.core.utils.currency_rates.CurrencyRatesError:
+            если не удалось получить курс валюты.
+
+        :raises CoreError: если не удалось совершить покупку.
         """
-        # получить кошелек для требуемой валюты:
         portfolio = self.get_portfolio(user_id)
         wallet: Optional[Wallet] = portfolio.get_wallet(buy_info.currency)
         if wallet is None:
             wallet = portfolio.add_currency(buy_info.currency)
         buy_info.before_balance = wallet.balance
         buy_info.wallet = wallet
-        # увеличить баланс кошелька:
         balance: float = wallet.deposit(buy_info.amount)
-        buy_info.after_balance = balance
-        # получить текущий курс базовая валюта -> требуемая валюта:
         try:
+            self._save_data(Portfolio, self._portfolios)
             rates: RatesType = get_exchange_rate(buy_info.base_currency)
             buy_info.rate = rates[buy_info.currency]
-        except requests.RequestException as e:
-            print(f"Не удалось получить курс валюты: {e}")
-
+        except CurrencyRatesError as e:
+            print(e)
+        except SaveDataError as e:
+            wallet.balance -= buy_info.amount
+            raise e
+        else:
+            buy_info.after_balance = balance
 

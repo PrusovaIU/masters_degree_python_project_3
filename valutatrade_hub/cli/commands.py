@@ -70,7 +70,7 @@ class CommandHandler:
             return {}
         cls._check_command_args(command_args)
         args: list[tuple[str, str]] = re.findall(
-            r"--(\w+) (.+)",
+            r"--(\w+) ([\w\.]+)",
             command_args
         )
         return {arg[0]: arg[1] for arg in args}

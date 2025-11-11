@@ -18,11 +18,11 @@ class UnknownCommandError(EngineError):
 
 def check_login(func: CommandHandlerType) -> CommandHandlerType:
     @wraps(func)
-    def wrapper(self, command_args: CommandArgsType):
+    def wrapper(self, *args, **kwargs):
         if not self._current_user:
             print(f"Сначала выполните {Commands.login.value}")
             return
-        return func(self, command_args)
+        return func(self, *args, **kwargs)
     return wrapper
 
 
@@ -97,6 +97,9 @@ class Engine:
 
     @CommandHandler(Commands.login)
     def login(self, command_args: CommandArgsType) -> None:
+        if self._current_user:
+            print(f"Вы уже вошли как \"{self._current_user.username}\"")
+            return
         try:
             username = command_args["username"]
             password = command_args["password"]
@@ -154,7 +157,7 @@ class Engine:
     @check_login
     def buy(self, command_args: CommandArgsType) -> None:
         try:
-            currency: str = command_args["currency"].capitalize()
+            currency: str = command_args["currency"].upper()
             if not currency:
                 raise ValueError("Не указана валюта")
             amount: float = float(command_args["amount"])
@@ -166,17 +169,17 @@ class Engine:
             self._core.buy(self._current_user.user_id, buy_info)
         except KeyError as e:
             print(f"Не передан обязательный параметр: {e}")
-        except ValueError as e:
+        except (ValueError, core.CoreError) as e:
             print(e)
         else:
             evaluative_amount: float = buy_info.amount / buy_info.rate
             print(
-                f"Покупка выполнена: {buy_info.amount:,.2f} "
+                f"Покупка выполнена: {buy_info.amount:,.4f} "
                 f"{buy_info.currency} по курсу {buy_info.rate:,.2f} "
                 f"{self.BASE_CURRENCY}/{buy_info.currency}\n"
                 f"Изменения в портфеле:\n"
-                f"- {buy_info.currency}: было {buy_info.before_balance:,.2f} "
-                f"-> стало {buy_info.after_balance:,.2f}\n"
+                f"- {buy_info.currency}: было {buy_info.before_balance:,.4f} "
+                f"-> стало {buy_info.after_balance:,.4f}\n"
                 f"Оценочная стоимость покупки: "
                 f"{evaluative_amount:,.2f} {self.BASE_CURRENCY}"
             )
