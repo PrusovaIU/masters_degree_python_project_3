@@ -1,7 +1,10 @@
 from requests import get, Response
 
 
-def get_exchange_rate(base_currency: str) -> dict[str, float]:
+RatesType = dict[str, float]
+
+
+def get_exchange_rate(base_currency: str) -> RatesType:
     """
     Получить курсы валют.
 

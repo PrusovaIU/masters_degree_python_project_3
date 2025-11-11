@@ -53,6 +53,29 @@ class Wallet:
             "balance": self._balance
         }
 
+    def convert(self, base_currency: str, rates: dict[str, float]) -> float:
+        """
+        Конвертация баланса по указанным курсам.
+
+        :param base_currency: код валюты, в которую требуется конвертировать.
+
+        :param rates: курс относительно валюты, в которую требуется
+            конвертировать.
+
+        :return: конвертированный баланс.
+
+        :raises ValueError: если не удалось получить курс для валюты кошелька.
+        """
+        if base_currency == self.currency_code:
+            return self.balance
+        else:
+            rate = rates.get(self.currency_code)
+            if rate is None:
+                raise ValueError(
+                    f"Не удалось получить курс для валюты {self.currency_code}"
+                )
+            return self.balance / rate
+
     def dump(self) -> dict:
         return {
             "balance": self._balance

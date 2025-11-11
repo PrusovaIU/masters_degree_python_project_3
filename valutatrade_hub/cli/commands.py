@@ -12,7 +12,7 @@ class Commands(Enum):
     exit = "exit"
 
 
-CommandArgsType = dict[str, Any]
+CommandArgsType = dict[str, str]
 CommandHandlerType: TypeAlias = (
         Callable[[CommandArgsType], None] | Callable[[], None] |
         Callable[[object, CommandArgsType], None] | Callable[[object], None]

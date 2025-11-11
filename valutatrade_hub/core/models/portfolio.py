@@ -1,7 +1,7 @@
 from typing import Optional
 
 from .wallet import Wallet
-from valutatrade_hub.core.utils.currency_rates import get_exchange_rate
+from valutatrade_hub.core.utils.currency_rates import get_exchange_rate, RatesType
 from enum import Enum
 
 
@@ -59,18 +59,10 @@ class Portfolio:
 
         :raises ValueError: если не удалось получить курс для валюты.
         """
-        rates = get_exchange_rate(base_currency)
+        rates: RatesType = get_exchange_rate(base_currency)
         total_value = 0
-        for currency_code, wallet in self._wallets.items():
-            if currency_code == base_currency:
-                total_value += wallet.balance
-            else:
-                rate = rates.get(currency_code)
-                if rate is None:
-                    raise ValueError(
-                        f"Не удалось получить курс для валюты {currency_code}"
-                    )
-                total_value += wallet.balance / rate
+        for wallet in self._wallets.values():
+            total_value += wallet.convert(base_currency, rates)
         return total_value
 
     def get_wallet(self, currency_code) -> Optional[Wallet]:

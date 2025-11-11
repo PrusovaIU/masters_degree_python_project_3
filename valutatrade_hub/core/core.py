@@ -1,8 +1,11 @@
 import secrets
 
-from .models import User
+import requests
+
+from .models import User, Wallet
 from .models.portfolio import Portfolio, ProtfolioJsonKeys
 from .utils import data as data_utils
+from .utils.currency_rates import get_exchange_rate, RatesType
 from typing import TypeVar, Type, Protocol
 
 
@@ -194,8 +197,52 @@ class Core:
         except IndexError:
             raise UnknownUserError(username)
 
-    def get_portfolio(self, user: User) -> list[Portfolio]:
-        return [
-            portfolio for portfolio in self._portfolios
-            if portfolio.user == user
-        ]
+    def get_portfolio(self, user_id: int) -> Portfolio:
+        """
+        Получение портфеля пользователя.
+
+        :param user_id: ID пользователя.
+        :return: портфель пользователя.
+        """
+        try:
+            return [
+                portfolio for portfolio in self._portfolios
+                if portfolio.user == user_id
+            ][0]
+        except IndexError:
+            raise UnknownUserError(user_id)
+
+    def get_wallets_balances(
+            self,
+            user_id: int,
+            base_currency: str
+    ) -> dict[Wallet, float]:
+        """
+        Получение балансов портфеля пользователя.
+
+        Балансы всех кошельков конвертируются в указанную валюту.
+
+        :param user_id: ID пользователя.
+        :param base_currency: валюта, в которую будут конвертироваться балансы.
+
+        :return: словарь с балансами портфеля вида
+            {кошелек: конвертированный баланс}
+
+        :raises UnknownUserError: если портфель для указанного пользователя
+            не найден.
+        """
+        try:
+            portfolio = self.get_portfolio(user_id)
+            rates: RatesType = get_exchange_rate(base_currency)
+            data = {}
+            for wallet in portfolio.wallets.values():
+                data[wallet] = wallet.convert(base_currency, rates)
+        except requests.HTTPError as e:
+            if e.response.status_code == 404:
+                raise CoreError(f"Неизвестная базовая валюта: {base_currency}")
+            else:
+                raise CoreError(f"Ошибка при получении данных: {e}")
+        except requests.RequestException as e:
+            raise CoreError(f"Ошибка при получении данных: {e}")
+        return data
+
