@@ -1,8 +1,11 @@
 import secrets
 
-from .models import User
+import requests
+
+from .models import User, Wallet
 from .models.portfolio import Portfolio, ProtfolioJsonKeys
 from .utils import data as data_utils
+from .utils.currency_rates import get_exchange_rate, RatesType
 from typing import TypeVar, Type, Protocol
 
 
@@ -25,14 +28,15 @@ class DumpClassProtocol(Protocol):
 
 
 DC = TypeVar("DC", bound=DumpClassProtocol)
+T = TypeVar("T")
 
 
 class Core:
     _USER_PASSWORD_MIN_LENGTH = 4
 
     def __init__(self):
-        self._users: list[User] = self._load_users()
-        self._portfolios: list[Portfolio] = self._load_portfolios()
+        self._users: list[User] = self._load_data(User)
+        self._portfolios: list[Portfolio] = self._load_data(Portfolio)
 
     @property
     def user_names(self) -> list[str]:
@@ -42,58 +46,28 @@ class Core:
         return [user.username for user in self._users]
 
     @staticmethod
-    def _load_users() -> list[User]:
+    def _load_data(obj: Type[T]) -> list[T]:
         """
-        Загрузка данных о пользователях.
+        Загрузка данных из файла.
 
-        :return: список пользователей.
+        :param obj: класс объекта.
+        :return: список объектов.
 
-        :raises CoreError: если не удалось загрузить данные о пользователях.
+        :raises CoreError: если не удалось загрузить данные.
         """
         try:
-            data: list[dict] = data_utils.load_data(User)
-            objs: list[User] = []
+            data: list[dict] = data_utils.load_data(obj)
+            objs: list[T] = []
             for i, user in enumerate(data):
-                objs.append(User(**user))
+                objs.append(obj(**user))
         except data_utils.DataError as e:
             raise CoreError(
-                f"Невозможно загрузить данные о пользователях: {e}"
+                f"Невозможно загрузить данные \"{obj.__name__}\": {e}"
             )
         except TypeError as e:
             raise CoreError(
-                f"Неверный формат данных: {e} (пользователь [{i}])"
-            )
-        return objs
-
-    def _load_portfolios(self) -> list[Portfolio]:
-        """
-        Загрузка данных о портфелях.
-
-        :return: список портфелей.
-
-        :raises CoreError: если не удалось загрузить данные о портфелях.
-        """
-        try:
-            data: list[dict] = data_utils.load_data(Portfolio)
-            objs: list[Portfolio] = []
-            for i, portfolio in enumerate(data):
-                user_id = portfolio.pop(ProtfolioJsonKeys.user.value)
-                user_id = int(user_id)
-                user = [
-                    user for user in self._users if user.user_id == user_id
-                ][0]
-                objs.append(Portfolio(user, **portfolio))
-        except data_utils.DataError as e:
-            raise CoreError(
-                f"Невозможно загрузить данные о портфелях: {e}"
-            )
-        except IndexError:
-            raise CoreError(
-                f"Пользователь с ID \"{user_id}\" не найден"
-            )
-        except TypeError as e:
-            raise CoreError(
-                f"Неверный формат данных: {e} (портфель [{i}])"
+                f"Неверный формат данных: "
+                f"{e} ({obj.__name__} [{i}])"
             )
         return objs
 
@@ -196,7 +170,7 @@ class Core:
 
         :raises CoreError: если не удалось создать новый портфель.
         """
-        new_portfolio = Portfolio(user)
+        new_portfolio = Portfolio(user.user_id)
         self._portfolios.append(new_portfolio)
         self._save_data(Portfolio, self._portfolios)
         return new_portfolio
@@ -222,4 +196,53 @@ class Core:
             return user
         except IndexError:
             raise UnknownUserError(username)
+
+    def get_portfolio(self, user_id: int) -> Portfolio:
+        """
+        Получение портфеля пользователя.
+
+        :param user_id: ID пользователя.
+        :return: портфель пользователя.
+        """
+        try:
+            return [
+                portfolio for portfolio in self._portfolios
+                if portfolio.user == user_id
+            ][0]
+        except IndexError:
+            raise UnknownUserError(user_id)
+
+    def get_wallets_balances(
+            self,
+            user_id: int,
+            base_currency: str
+    ) -> dict[Wallet, float]:
+        """
+        Получение балансов портфеля пользователя.
+
+        Балансы всех кошельков конвертируются в указанную валюту.
+
+        :param user_id: ID пользователя.
+        :param base_currency: валюта, в которую будут конвертироваться балансы.
+
+        :return: словарь с балансами портфеля вида
+            {кошелек: конвертированный баланс}
+
+        :raises UnknownUserError: если портфель для указанного пользователя
+            не найден.
+        """
+        try:
+            portfolio = self.get_portfolio(user_id)
+            rates: RatesType = get_exchange_rate(base_currency)
+            data = {}
+            for wallet in portfolio.wallets.values():
+                data[wallet] = wallet.convert(base_currency, rates)
+        except requests.HTTPError as e:
+            if e.response.status_code == 404:
+                raise CoreError(f"Неизвестная базовая валюта: {base_currency}")
+            else:
+                raise CoreError(f"Ошибка при получении данных: {e}")
+        except requests.RequestException as e:
+            raise CoreError(f"Ошибка при получении данных: {e}")
+        return data
 

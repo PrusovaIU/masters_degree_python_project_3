@@ -2,7 +2,8 @@ from typing import Optional
 
 from valutatrade_hub.core import core
 from .commands import Commands, CommandHandler, CommandArgsType
-from valutatrade_hub.core.models import User
+from valutatrade_hub.core.models import User, Wallet
+
 
 
 class EngineError(Exception):
@@ -71,6 +72,42 @@ class Engine:
             print(e)
         except core.UnknownUserError as e:
             print(f"Пользователь \"{e}\" не найден")
+
+    @CommandHandler(Commands.show_portfolio)
+    def show_portfolio(
+            self,
+            command_args: Optional[CommandArgsType] = None
+    ) -> None:
+        if not self._current_user:
+            print(f"Сначала выполните {Commands.login.value}")
+            return
+        default_base = "USD"
+        base: str = command_args["base"] if command_args else default_base
+        data = []
+        try:
+            wallets: dict[Wallet, float] = self._core.get_wallets_balances(
+                self._current_user.user_id,
+                base
+            )
+            for wallet, balance in wallets.items():
+                data.append(
+                    f"- {wallet.currency_code}: {wallet.balance} "
+                    f"-> {balance} {base}"
+                )
+        except core.UnknownUserError:
+            print(
+                f"Не найден портфель для пользователя "
+                f"\"{self._current_user.username}\""
+            )
+        except core.CoreError as e:
+            print(e)
+        else:
+            portfolio_info = "\n".join(data) if data else "Портфель пуст"
+            print(
+                f"Портфель пользователя \"{self._current_user.username}\" "
+                f"(база: {base}):\n"
+                f"{portfolio_info}"
+            )
 
 
     @staticmethod
