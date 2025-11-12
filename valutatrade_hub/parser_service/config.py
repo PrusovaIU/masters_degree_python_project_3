@@ -33,6 +33,9 @@ class ParserConfig:
         # Сетевые параметры
         self.request_timeout: int = 10
 
+        # количество записей в истории
+        self.max_history_len: int = 100
+
     def load(self, file_path: Path) -> None:
         """
         Загрузка конфигурации из файла .env.
@@ -56,6 +59,9 @@ class ParserConfig:
             )
             self.request_timeout = int(
                 environ.get("REQUEST_TIMEOUT", self.request_timeout)
+            )
+            self.max_history_len = int(
+                environ.get("MAX_HISTORY_LEN", self.max_history_len)
             )
         except KeyError as e:
             raise ConfigError(f"Не найден ключ {e}")

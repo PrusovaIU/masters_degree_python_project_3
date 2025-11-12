@@ -1,22 +1,16 @@
-import requests
-
 from .abc import BaseApiClient
 from valutatrade_hub.parser_service import models
+import requests
 from datetime import datetime
-
 from http import HTTPStatus
 
 
-class CoinGeckoClient(BaseApiClient):
+class ExchangeRateApiClient(BaseApiClient):
     def _call_api(self) -> list[models.ExchangeRate]:
-        params = {
-            "ids": ",".join((self._config.crypto_currencies.values())),
-            "vs_currencies": self._config.base_currency
-        }
-        response, lead_time = self._request(
-            self._config.coingecko_url,
-            params=params
-        )
+        url = (f"{self._config.exchangerate_api_url}/"
+               f"{self._config.exchangerate_api_key}"
+               f"/latest/{self._config.base_currency}")
+        response, lead_time = self._request(url)
         return self._parse_response(response, lead_time)
 
     def _parse_response(
@@ -33,14 +27,13 @@ class CoinGeckoClient(BaseApiClient):
         """
         now = datetime.now()
         rates = []
-        for currency, data in response.json().items():
-            rate_value: float = 1 / data[self._config.base_currency]
+        for currency, rate_value in response.json()["rates"].items():
             rate = models.ExchangeRate(
                 from_currency=self._config.base_currency,
-                to_currency=self._config.crypto_currencies[currency],
+                to_currency=currency,
                 rate=rate_value,
                 timestamp=now,
-                source="CoinGecko",
+                source="ExchangeRateApi",
                 meta=models.ExchangeRateMeta(
                     raw_id=currency,
                     request_ms=request_ms,
