@@ -2,7 +2,7 @@ import json
 import toml
 from pathlib import Path
 from typing import Any, NamedTuple
-from abc import ABCMeta, abstractmethod
+from abc import ABCMeta, abstractmethod, ABC
 
 
 class SettingsLoaderError(Exception):
@@ -23,15 +23,22 @@ class Parameter(NamedTuple):
     alias: str | None = None
 
 
-class SettingsLoader(metaclass=ABCMeta):
+class SettingsLoader:
     """
     Абстрактный класс для загрузки настроек из файла
 
     :param settings_file: Путь к файлу настроек.
     """
-    def __init__(self, settings_file: Path):
+    def __init__(self, settings_file: str | Path):
+        if isinstance(settings_file, str):
+            settings_file = Path(settings_file)
         self._path = settings_file
         self._settings: dict[str, Any] = {}
+        self._is_loaded = False
+
+    @property
+    def path(self) -> Path:
+        return self._path
 
     @classmethod
     def parameters(cls) -> dict[str, Parameter]:
@@ -59,6 +66,8 @@ class SettingsLoader(metaclass=ABCMeta):
         :return: None.
         """
         try:
+            if self._is_loaded:
+                raise SettingsLoaderError("Настройки уже загружены")
             with self._path.open() as f:
                 content: str = f.read()
             parsed_content: dict[str, Any] = self._parse_file(content)
@@ -67,6 +76,8 @@ class SettingsLoader(metaclass=ABCMeta):
             raise SettingsLoaderError(
                 f"Не удалось прочитать файл настроек \"{self._path}\""
             )
+        else:
+            self._is_loaded = True
 
     def _form_settings(self, parsed_content: dict[str, Any]) -> dict[str, Any]:
         """
@@ -79,7 +90,7 @@ class SettingsLoader(metaclass=ABCMeta):
             в parsed_content.
         """
         settings = {}
-        for name, param in self.parameters():
+        for name, param in self.parameters().items():
             alias = param.alias or name
             if (not alias in parsed_content
                     and param.default is _NotSet):
@@ -111,7 +122,7 @@ class SettingsLoader(metaclass=ABCMeta):
             return default
 
 
-class JsonSettingsLoader(SettingsLoader, metaclass=ABCMeta):
+class JsonSettingsLoader(SettingsLoader):
     """
     Класс для загрузки настроек из JSON-файла.
     """
@@ -124,7 +135,7 @@ class JsonSettingsLoader(SettingsLoader, metaclass=ABCMeta):
             )
 
 
-class TOMLSettingsLoader(SettingsLoader, metaclass=ABCMeta):
+class TOMLSettingsLoader(SettingsLoader):
     """
     Класс для загрузки настроек из TOML-файла.
     """

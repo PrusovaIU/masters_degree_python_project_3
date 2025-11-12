@@ -1,5 +1,3 @@
-from enum import Enum
-
 from valutatrade_hub.infra import Singleton, JsonSettingsLoader, Parameter
 from pathlib import Path
 
