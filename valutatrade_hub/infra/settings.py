@@ -1,16 +1,8 @@
 import json
 import toml
 from pathlib import Path
-from typing import Any
+from typing import Any, NamedTuple
 from abc import ABCMeta, abstractmethod
-
-
-class Singleton(type):
-    _instances = {}
-    def __call__(cls, *args, **kwargs):
-        if cls not in cls._instances:
-            cls._instances[cls] = super().__call__(*args, **kwargs)
-        return cls._instances[cls]
 
 
 class SettingsLoaderError(Exception):
@@ -19,6 +11,16 @@ class SettingsLoaderError(Exception):
 
 class UnknownParameterError(SettingsLoaderError):
     pass
+
+
+class _NotSet:
+    pass
+
+
+class Parameter(NamedTuple):
+    ptype: type = str
+    default: Any = _NotSet
+    alias: str | None = None
 
 
 class SettingsLoader(metaclass=ABCMeta):
@@ -30,6 +32,13 @@ class SettingsLoader(metaclass=ABCMeta):
     def __init__(self, settings_file: Path):
         self._path = settings_file
         self._settings: dict[str, Any] = {}
+
+    @classmethod
+    def parameters(cls) -> dict[str, Parameter]:
+        return {
+            name: atr for name, atr in cls.__dict__.items()
+            if isinstance(atr, Parameter) and not name.startswith("_")
+        }
 
     @abstractmethod
     def _parse_file(self, content: str) -> dict[str, Any]:
@@ -52,14 +61,36 @@ class SettingsLoader(metaclass=ABCMeta):
         try:
             with self._path.open() as f:
                 content: str = f.read()
-            self._settings = self._parse_file(content)
+            parsed_content: dict[str, Any] = self._parse_file(content)
+            self._settings = self._form_settings(parsed_content)
         except OSError:
             raise SettingsLoaderError(
                 f"Не удалось прочитать файл настроек \"{self._path}\""
             )
 
-    class _NotSet:
-        pass
+    def _form_settings(self, parsed_content: dict[str, Any]) -> dict[str, Any]:
+        """
+        Формирование словаря с настройками.
+
+        :param parsed_content: словарь с параметрами, полученный из файла.
+        :return: словарь с настройками.
+
+        :raises UnknownParameterError: если параметр обязательный и не найден
+            в parsed_content.
+        """
+        settings = {}
+        for name, param in self.parameters():
+            alias = param.alias or name
+            if (not alias in parsed_content
+                    and param.default is _NotSet):
+                raise UnknownParameterError(
+                    f"Не найден параметр \"{param.name}\" в файле "
+                    f"настроек \"{self._path}\""
+                )
+            value = parsed_content.get(alias, param.default)
+            settings[name] = param.ptype(value)
+            setattr(self, name, value)
+        return settings
 
     def get(self, key: str, default: Any = _NotSet) -> Any:
         """
@@ -75,12 +106,12 @@ class SettingsLoader(metaclass=ABCMeta):
         try:
             return self._settings[key]
         except KeyError as e:
-            if default is self._NotSet:
+            if default is _NotSet:
                 raise UnknownParameterError(e)
             return default
 
 
-class JsonSettingsLoader(SettingsLoader):
+class JsonSettingsLoader(SettingsLoader, metaclass=ABCMeta):
     """
     Класс для загрузки настроек из JSON-файла.
     """
@@ -93,7 +124,7 @@ class JsonSettingsLoader(SettingsLoader):
             )
 
 
-class TOMLSettingsLoader(SettingsLoader):
+class TOMLSettingsLoader(SettingsLoader, metaclass=ABCMeta):
     """
     Класс для загрузки настроек из TOML-файла.
     """
