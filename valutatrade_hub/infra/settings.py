@@ -2,7 +2,7 @@ import json
 import toml
 from pathlib import Path
 from typing import Any, NamedTuple
-from abc import ABCMeta, abstractmethod, ABC
+from abc import ABCMeta, abstractmethod
 
 
 class SettingsLoaderError(Exception):
@@ -23,7 +23,7 @@ class Parameter(NamedTuple):
     alias: str | None = None
 
 
-class SettingsLoader:
+class SettingsLoader(metaclass=ABCMeta):
     """
     Абстрактный класс для загрузки настроек из файла
 

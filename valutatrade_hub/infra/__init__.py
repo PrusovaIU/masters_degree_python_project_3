@@ -1,10 +1,10 @@
-from .singleton import Singleton
+from .singletonmeta import SingletonMeta
 from .settings import (JsonSettingsLoader, TOMLSettingsLoader,
                        SettingsLoaderError, UnknownParameterError, Parameter)
 
 
 __all__ = [
-    "Singleton",
+    "SingletonMeta",
     "JsonSettingsLoader",
     "TOMLSettingsLoader",
     "SettingsLoaderError",
