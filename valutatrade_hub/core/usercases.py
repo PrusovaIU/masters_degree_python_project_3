@@ -2,9 +2,8 @@ import secrets
 from pathlib import Path
 
 from .models import User, Wallet, Portfolio, OperationInfo
-from valutatrade_hub.infra.data import load_data, save_data, DataError
+from valutatrade_hub.infra.database import DatabaseManager, DataError
 from .utils import currency_rates as cr
-from typing import TypeVar, Type, Protocol, Optional
 from .exceptions import CoreError
 from valutatrade_hub.core.exceptions import InsufficientFundsError
 
@@ -55,31 +54,18 @@ class SaveDataError(CoreError):
     pass
 
 
-class DumpClassProtocol(Protocol):
-    def dump(self) -> dict: ...
-
-
-class LoadClassProtocol(Protocol):
-    @classmethod
-    def load(cls, data: dict) -> "LoadClassProtocol": ...
-
-
-DC = TypeVar("DC", bound=DumpClassProtocol)
-LC = TypeVar("LC", bound=LoadClassProtocol)
-
-
 class Core:
     def __init__(
             self,
             data_path: Path,
             user_passwd_min_length: int
     ):
-        self._data_path = data_path
         self._user_passwd_min_length = user_passwd_min_length
+        self._db_manager = DatabaseManager(data_path)
         try:
-            self._users: list[User] = load_data(self._data_path, User)
-            self._portfolios: list[Portfolio] = load_data(
-                self._data_path, Portfolio
+            self._users: list[User] = self._db_manager.load_data(User)
+            self._portfolios: list[Portfolio] = self._db_manager.load_data(
+                Portfolio
             )
         except DataError as e:
             raise CoreError(str(e))
@@ -142,7 +128,7 @@ class Core:
             solt
         )
         self._users.append(user)
-        self._save_data(User, self._users)
+        self._db_manager.save_data(User, self._users)
         return user
 
     def _check_user_parameters(self, username: str, password: str) -> None:
@@ -173,7 +159,7 @@ class Core:
         """
         new_portfolio = Portfolio(user.user_id)
         self._portfolios.append(new_portfolio)
-        self._save_data(Portfolio, self._portfolios)
+        self._db_manager.save_data(Portfolio, self._portfolios)
         return new_portfolio
 
     def login_user(self, username: str, password: str) -> User:
@@ -272,7 +258,7 @@ class Core:
             create_wallet равен False.
         """
         portfolio = self.get_portfolio(user_id)
-        wallet: Optional[Wallet] = portfolio.get_wallet(currency)
+        wallet: Wallet | None = portfolio.get_wallet(currency)
         if wallet is None:
             if create_wallet:
                 wallet = portfolio.add_currency(currency)
@@ -325,7 +311,7 @@ class Core:
             )
         wallet.balance += operation_info.amount
         try:
-            self._save_data(Portfolio, self._portfolios)
+            self._db_manager.save_data(Portfolio, self._portfolios)
             operation_info.after_balance = wallet.balance
             operation_info.rate = cr.get_rate(
                 operation_info.base_currency, operation_info.currency
