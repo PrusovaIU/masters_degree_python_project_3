@@ -5,7 +5,7 @@ class SingletonMeta(ABCMeta):
     """
     Метакласс для создания синглтона.
 
-    Используется в core.config
+    Используется в valutatrade_hub.config
     """
     _instances = {}
     def __call__(cls, *args, **kwargs):

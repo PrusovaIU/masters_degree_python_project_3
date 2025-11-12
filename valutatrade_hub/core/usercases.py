@@ -2,7 +2,7 @@ import secrets
 from pathlib import Path
 
 from .models import User, Wallet, Portfolio, OperationInfo
-from .utils import data as data_utils
+from valutatrade_hub.infra.data import load_data, save_data, DataError
 from .utils import currency_rates as cr
 from typing import TypeVar, Type, Protocol, Optional
 from .exceptions import CoreError
@@ -76,8 +76,13 @@ class Core:
     ):
         self._data_path = data_path
         self._user_passwd_min_length = user_passwd_min_length
-        self._users: list[User] = self._load_data(User)
-        self._portfolios: list[Portfolio] = self._load_data(Portfolio)
+        try:
+            self._users: list[User] = load_data(self._data_path, User)
+            self._portfolios: list[Portfolio] = load_data(
+                self._data_path, Portfolio
+            )
+        except DataError as e:
+            raise CoreError(str(e))
 
     @property
     def user_names(self) -> list[str]:
@@ -85,51 +90,6 @@ class Core:
         :return: список имен пользователей.
         """
         return [user.username for user in self._users]
-
-    @staticmethod
-    def _load_data(obj: Type[LC]) -> list[LC]:
-        """
-        Загрузка данных из файла.
-
-        :param obj: класс объекта.
-        :return: список объектов.
-
-        :raises LoadDataError: если не удалось загрузить данные.
-        """
-        try:
-            data: list[dict] = data_utils.load_data(obj)
-            objs: list[LC] = []
-            for i, item in enumerate(data):
-                objs.append(obj.load(item))
-        except data_utils.DataError as e:
-            raise LoadDataError(
-                f"Невозможно загрузить данные \"{obj.__name__}\": {e}"
-            )
-        except (KeyError, TypeError) as e:
-            raise LoadDataError(
-                f"Неверный формат данных: "
-                f"{e} ({obj.__name__} [{i}])"
-            )
-        return objs
-
-    @staticmethod
-    def _save_data(obj: Type[DC], data: list[DC]) -> None:
-        """
-        Сохранение данных в файл.
-
-        :param obj: класс объекта.
-        :param data: список объектов.
-        :return: None.
-
-        :raises SaveDataError: если не удалось сохранить данные.
-        """
-        dumps_data: list[dict] = [el.dump() for el in data]
-        try:
-            data_utils.save_data(obj, dumps_data)
-        except (TypeError, data_utils.DataError) as e:
-            raise CoreError(
-                f"Невозможно сохранить данные \"{obj.__name__}\": {e}"
-            )
 
     def registrate_user(self, username: str, password: str) -> int:
         """

@@ -99,8 +99,9 @@ class SettingsLoader(metaclass=ABCMeta):
                     f"настроек \"{self._path}\""
                 )
             value = parsed_content.get(alias, param.default)
-            settings[name] = param.ptype(value)
-            setattr(self, name, value)
+            ptype_value = param.ptype(value)
+            settings[name] = ptype_value
+            setattr(self, name, ptype_value)
         return settings
 
     def get(self, key: str, default: Any = _NotSet) -> Any:
