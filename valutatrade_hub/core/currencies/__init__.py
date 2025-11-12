@@ -1,12 +1,12 @@
 from .fiat import FiatCurrency
 from .crypto import CryptoCurrency
 from .abc import Currency
+from valutatrade_hub.core.exceptions import CurrencyNotFoundError
 
 __all__ = [
     "FiatCurrency",
     "CryptoCurrency",
-    "get_currency",
-    "CurrencyNotFoundError"
+    "get_currency"
 ]
 
 # Реестр валют: код -> экземпляр Currency
@@ -33,15 +33,6 @@ _CURRENCY_REGISTRY: dict[str, Currency] = {
         "Solana", "SOL", "SHA-256", 1e10
     ),
 }
-
-
-class CurrencyNotFoundError(Exception):
-    """Исключение, выбрасываемое, если валюта с указанным кодом не найдена."""
-    def __init__(self, currency_code: str):
-        self._currency_code = currency_code
-
-    def __str__(self):
-        return f"Валюта с кодом \"{self._currency_code}\" не найдена."
 
 
 def get_currency(code: str) -> Currency:
