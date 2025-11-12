@@ -8,6 +8,7 @@ from valutatrade_hub.core import models
 from functools import wraps
 import re
 from enum import Enum
+from valutatrade_hub.config import Config
 
 
 class EngineError(Exception):
@@ -37,10 +38,12 @@ def check_login(func: CommandHandlerType) -> Callable:
 
 
 class Engine:
-    BASE_CURRENCY = "USD"
-
-    def __init__(self):
-        self._core = usercases.Core()
+    def __init__(self, config: Config):
+        self._core = usercases.Core(
+            config.data_path,
+            config.user_passwd_min_length
+        )
+        self._base_currency = config.base_currency
         self._current_user: Optional[models.User] = None
         self._exit = False
 
@@ -129,7 +132,7 @@ class Engine:
         :return: None.
         """
         base: str = command_args["base"] if command_args \
-            else self.BASE_CURRENCY
+            else self._base_currency
         data = []
         try:
             wallets: dict[models.Wallet, float] = \
@@ -210,7 +213,7 @@ class Engine:
                 create_wallet = False
             else:
                 create_wallet = True
-            info = models.OperationInfo(amount, currency, self.BASE_CURRENCY)
+            info = models.OperationInfo(amount, currency, self._base_currency)
             self._core.balance_operation(
                 self._current_user.user_id, info, create_wallet
             )
@@ -229,12 +232,12 @@ class Engine:
                 f"{operation_type.value.capitalize()} выполнена: "
                 f"{amount:,.4f} {info.currency} "
                 f"по курсу {rate:,.2f} "
-                f"{self.BASE_CURRENCY}/{info.currency}\n"
+                f"{self._base_currency}/{info.currency}\n"
                 f"Изменения в портфеле:\n"
                 f"- {info.currency}: было {info.before_balance:,.4f} "
                 f"-> стало {info.after_balance:,.4f}\n"
                 f"Оценочная стоимость: "
-                f"{evaluative_amount:,.2f} {self.BASE_CURRENCY}"
+                f"{evaluative_amount:,.2f} {self._base_currency}"
             )
 
     @staticmethod

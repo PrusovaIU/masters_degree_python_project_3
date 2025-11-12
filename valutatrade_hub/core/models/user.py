@@ -2,7 +2,6 @@ from datetime import datetime
 from enum import Enum
 from hashlib import sha256
 from typing import Optional
-from valutatrade_hub.core.utils.data import save_data
 
 
 class UserParameterName(Enum):

@@ -1,9 +1,9 @@
 import secrets
+from pathlib import Path
 
 from .models import User, Wallet, Portfolio, OperationInfo
-from .utils import data as data_utils
+from valutatrade_hub.infra.database import DatabaseManager, DataError
 from .utils import currency_rates as cr
-from typing import TypeVar, Type, Protocol, Optional
 from .exceptions import CoreError
 from valutatrade_hub.core.exceptions import InsufficientFundsError
 
@@ -54,25 +54,21 @@ class SaveDataError(CoreError):
     pass
 
 
-class DumpClassProtocol(Protocol):
-    def dump(self) -> dict: ...
-
-
-class LoadClassProtocol(Protocol):
-    @classmethod
-    def load(cls, data: dict) -> "LoadClassProtocol": ...
-
-
-DC = TypeVar("DC", bound=DumpClassProtocol)
-LC = TypeVar("LC", bound=LoadClassProtocol)
-
-
 class Core:
-    _USER_PASSWORD_MIN_LENGTH = 4
-
-    def __init__(self):
-        self._users: list[User] = self._load_data(User)
-        self._portfolios: list[Portfolio] = self._load_data(Portfolio)
+    def __init__(
+            self,
+            data_path: Path,
+            user_passwd_min_length: int
+    ):
+        self._user_passwd_min_length = user_passwd_min_length
+        self._db_manager = DatabaseManager(data_path)
+        try:
+            self._users: list[User] = self._db_manager.load_data(User)
+            self._portfolios: list[Portfolio] = self._db_manager.load_data(
+                Portfolio
+            )
+        except DataError as e:
+            raise CoreError(str(e))
 
     @property
     def user_names(self) -> list[str]:
@@ -80,51 +76,6 @@ class Core:
         :return: список имен пользователей.
         """
         return [user.username for user in self._users]
-
-    @staticmethod
-    def _load_data(obj: Type[LC]) -> list[LC]:
-        """
-        Загрузка данных из файла.
-
-        :param obj: класс объекта.
-        :return: список объектов.
-
-        :raises LoadDataError: если не удалось загрузить данные.
-        """
-        try:
-            data: list[dict] = data_utils.load_data(obj)
-            objs: list[LC] = []
-            for i, item in enumerate(data):
-                objs.append(obj.load(item))
-        except data_utils.DataError as e:
-            raise LoadDataError(
-                f"Невозможно загрузить данные \"{obj.__name__}\": {e}"
-            )
-        except (KeyError, TypeError) as e:
-            raise LoadDataError(
-                f"Неверный формат данных: "
-                f"{e} ({obj.__name__} [{i}])"
-            )
-        return objs
-
-    @staticmethod
-    def _save_data(obj: Type[DC], data: list[DC]) -> None:
-        """
-        Сохранение данных в файл.
-
-        :param obj: класс объекта.
-        :param data: список объектов.
-        :return: None.
-
-        :raises SaveDataError: если не удалось сохранить данные.
-        """
-        dumps_data: list[dict] = [el.dump() for el in data]
-        try:
-            data_utils.save_data(obj, dumps_data)
-        except (TypeError, data_utils.DataError) as e:
-            raise CoreError(
-                f"Невозможно сохранить данные \"{obj.__name__}\": {e}"
-            )
 
     def registrate_user(self, username: str, password: str) -> int:
         """
@@ -177,7 +128,7 @@ class Core:
             solt
         )
         self._users.append(user)
-        self._save_data(User, self._users)
+        self._db_manager.save_data(User, self._users)
         return user
 
     def _check_user_parameters(self, username: str, password: str) -> None:
@@ -194,7 +145,7 @@ class Core:
             raise ValueError("Имя пользователя не может быть пустым")
         if not password:
             raise ValueError("Пароль не может быть пустым")
-        if len(password) < self._USER_PASSWORD_MIN_LENGTH:
+        if len(password) < self._user_passwd_min_length:
             raise ValueError("Пароль должен быть не короче 4 символов")
 
     def _new_portfolio(self, user: User) -> Portfolio:
@@ -208,7 +159,7 @@ class Core:
         """
         new_portfolio = Portfolio(user.user_id)
         self._portfolios.append(new_portfolio)
-        self._save_data(Portfolio, self._portfolios)
+        self._db_manager.save_data(Portfolio, self._portfolios)
         return new_portfolio
 
     def login_user(self, username: str, password: str) -> User:
@@ -307,7 +258,7 @@ class Core:
             create_wallet равен False.
         """
         portfolio = self.get_portfolio(user_id)
-        wallet: Optional[Wallet] = portfolio.get_wallet(currency)
+        wallet: Wallet | None = portfolio.get_wallet(currency)
         if wallet is None:
             if create_wallet:
                 wallet = portfolio.add_currency(currency)
@@ -360,7 +311,7 @@ class Core:
             )
         wallet.balance += operation_info.amount
         try:
-            self._save_data(Portfolio, self._portfolios)
+            self._db_manager.save_data(Portfolio, self._portfolios)
             operation_info.after_balance = wallet.balance
             operation_info.rate = cr.get_rate(
                 operation_info.base_currency, operation_info.currency
