@@ -1,4 +1,4 @@
-from .singletonmeta import SingletonMeta
+from .singleton import SingletonMeta
 from .settings import (JsonSettingsLoader, TOMLSettingsLoader,
                        SettingsLoaderError, UnknownParameterError, Parameter)
 

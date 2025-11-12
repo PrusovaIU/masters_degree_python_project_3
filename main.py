@@ -14,3 +14,4 @@ if __name__ == '__main__':
     print(config.path)
     print(config.data_path)
     print(config.base_currency)
+    print(config.user_passwd_min_length)

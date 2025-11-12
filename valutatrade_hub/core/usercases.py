@@ -1,4 +1,5 @@
 import secrets
+from pathlib import Path
 
 from .models import User, Wallet, Portfolio, OperationInfo
 from .utils import data as data_utils
@@ -68,9 +69,13 @@ LC = TypeVar("LC", bound=LoadClassProtocol)
 
 
 class Core:
-    _USER_PASSWORD_MIN_LENGTH = 4
-
-    def __init__(self):
+    def __init__(
+            self,
+            data_path: Path,
+            user_passwd_min_length: int
+    ):
+        self._data_path = data_path
+        self._user_passwd_min_length = user_passwd_min_length
         self._users: list[User] = self._load_data(User)
         self._portfolios: list[Portfolio] = self._load_data(Portfolio)
 
@@ -194,7 +199,7 @@ class Core:
             raise ValueError("Имя пользователя не может быть пустым")
         if not password:
             raise ValueError("Пароль не может быть пустым")
-        if len(password) < self._USER_PASSWORD_MIN_LENGTH:
+        if len(password) < self._user_passwd_min_length:
             raise ValueError("Пароль должен быть не короче 4 символов")
 
     def _new_portfolio(self, user: User) -> Portfolio:
