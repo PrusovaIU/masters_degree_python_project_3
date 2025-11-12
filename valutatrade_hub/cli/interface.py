@@ -1,6 +1,6 @@
 from typing import Optional
 
-from valutatrade_hub.core import core
+from valutatrade_hub.core import usercases
 from .commands import (Commands, CommandHandler, CommandArgsType,
                        CommandHandlerType)
 from valutatrade_hub.core import models
