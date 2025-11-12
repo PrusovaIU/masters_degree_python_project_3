@@ -1,5 +1,6 @@
 from enum import Enum
 from valutatrade_hub.core.utils.currency_rates import UnknownCurrencyError
+from valutatrade_hub.core.exceptions import InsufficientFundsError
 
 
 class WalletJsonKeys(Enum):
@@ -47,7 +48,11 @@ class Wallet:
         :return: остаток на счете.
         """
         if self._balance < amount:
-            raise ValueError("Недостаточно средств")
+            raise InsufficientFundsError(
+                self._balance,
+                amount,
+                self.currency_code
+            )
         self._balance -= amount
         return self._balance
 

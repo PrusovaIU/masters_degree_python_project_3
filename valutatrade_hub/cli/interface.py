@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from typing import Optional
 
 from valutatrade_hub.core import usercases
@@ -22,7 +23,7 @@ class BalanceOperationType(Enum):
     sell = "продажа"
 
 
-def check_login(func: CommandHandlerType) -> CommandHandlerType:
+def check_login(func: CommandHandlerType) -> Callable:
     """
     Декоратор для проверки, был ли авторизован пользователь.
     """
@@ -30,7 +31,7 @@ def check_login(func: CommandHandlerType) -> CommandHandlerType:
     def wrapper(self, *args, **kwargs):
         if not self._current_user:
             print(f"Сначала выполните {Commands.login.value}")
-            return
+            return None
         return func(self, *args, **kwargs)
     return wrapper
 
@@ -39,7 +40,7 @@ class Engine:
     BASE_CURRENCY = "USD"
 
     def __init__(self):
-        self._core = core.Core()
+        self._core = usercases.Core()
         self._current_user: Optional[models.User] = None
         self._exit = False
 
@@ -97,7 +98,7 @@ class Engine:
             )
         except KeyError as e:
             print(f"Не передан обязательный параметр: {e}")
-        except core.UserIsAlreadyExistError as e:
+        except usercases.UserIsAlreadyExistError as e:
             print(f"Имя пользователя \"{e}\" уже занято")
 
     @CommandHandler(Commands.login)
@@ -112,7 +113,7 @@ class Engine:
             print(f"Вы вошли как \"{self._current_user.username}\"")
         except KeyError as e:
             print(f"Не передан обязательный параметр: {e}")
-        except core.UnknownUserError as e:
+        except usercases.UnknownUserError as e:
             print(f"Пользователь \"{e}\" не найден")
 
     @CommandHandler(Commands.show_portfolio)
@@ -145,7 +146,7 @@ class Engine:
                 self._current_user.user_id
             )
             total_balance: float = portfolio.get_total_value(base)
-        except core.UnknownUserError:
+        except usercases.UnknownUserError:
             print(
                 f"Не найден портфель для пользователя "
                 f"\"{self._current_user.username}\""
@@ -182,7 +183,7 @@ class Engine:
         """
         try:
             self._balance_operation(command_args, BalanceOperationType.sell)
-        except core.UnknownWalletError as err:
+        except usercases.UnknownWalletError as err:
             print(
                 f"У Вас нет кошелька \"{err.currency}\". "
                 f"Добавьте валюту: она создаётся автоматически при "
@@ -266,6 +267,6 @@ class Engine:
                 CommandHandler.handle(command, args, self)
             except UnknownCommandError as e:
                 print(f"Неизвестная команда: \"{e}\"")
-            except (ValueError, core.CoreError) as e:
+            except (ValueError, usercases.CoreError) as e:
                 print(e)
         print("Завершение работы...")

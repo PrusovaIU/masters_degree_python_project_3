@@ -1,12 +1,11 @@
 import secrets
 
-import requests
-
 from .models import User, Wallet, Portfolio, OperationInfo
 from .utils import data as data_utils
 from .utils import currency_rates as cr
 from typing import TypeVar, Type, Protocol, Optional
 from .exceptions import CoreError
+from valutatrade_hub.core.exceptions import InsufficientFundsError
 
 
 class UserError(CoreError):
@@ -356,9 +355,8 @@ class Core:
         operation_info.wallet = wallet
         amount_abs = abs(operation_info.amount)
         if amount_abs > wallet.balance:
-            raise ValueError(
-                f"Недостаточно средств: доступно {wallet.balance:,.4f}, "
-                f"требуется {amount_abs:,.4f}"
+            raise InsufficientFundsError(
+                wallet.balance, amount_abs, operation_info.currency
             )
         wallet.balance += operation_info.amount
         try:
