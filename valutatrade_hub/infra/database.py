@@ -40,6 +40,11 @@ class SaveDataError(FileError):
 
 
 class DatabaseManager:
+    """
+    Класс для работы с файлами.
+
+    :param dir_path: путь к директории с файлами.
+    """
     def __init__(self, dir_path: Path):
         self._dir_path = dir_path
 
