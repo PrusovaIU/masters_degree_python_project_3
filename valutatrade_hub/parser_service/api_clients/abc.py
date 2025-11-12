@@ -98,4 +98,7 @@ class BaseApiClient(metaclass=ABCMeta):
                 self._history = self._history[-self._config.max_history_len:]
             return self._form_rages(data)
         except requests.RequestException as e:
-            raise ApiRequestError(f"{e} ({e.__class__.__name__})")
+            raise ApiRequestError(
+                f"Не удалось получить данные от \"{e.request.url}\": {e} "
+                f"({e.__class__.__name__})"
+            )
