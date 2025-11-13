@@ -5,8 +5,8 @@ from valutatrade_hub.infra.singleton import SingletonMeta
 
 
 @dataclass
-class CoreLogRecord(LogRecord):
-    """Запись лога"""
+class BalanceLogRecord(LogRecord):
+    """Запись лога для операций с балансом."""
     #: имя пользователя:
     username: str = ""
     #: id пользователя:

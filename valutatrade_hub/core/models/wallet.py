@@ -7,6 +7,10 @@ class WalletJsonKeys(Enum):
     balance = "balance"
 
 
+class NegativeBalanceError(ValueError):
+    pass
+
+
 class Wallet:
     def __init__(self, currency_code: str, balance: float):
         """
@@ -27,7 +31,7 @@ class Wallet:
         if not isinstance(value, (int, float)):
             raise ValueError("Баланс должен быть числом")
         if value < 0:
-            raise ValueError("Баланс не может быть отрицательным")
+            raise NegativeBalanceError("Баланс не может быть отрицательным")
         self._balance = value
 
     def deposit(self, amount: float) -> float:

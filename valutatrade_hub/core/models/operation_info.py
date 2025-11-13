@@ -8,12 +8,18 @@ class OperationInfo:
     """
     Информация о покупке
     """
+    #: имя пользователя
+    username: str
+    #: id пользователя
+    user_id: int
     #: сумма покупки
     amount: float
     #: валюта покупки
     currency: str
     #: базовая валюта
     base_currency: str
+    #: тип операции
+    operation_type: str
     #: курс базовая валюта/валюта покупки
     rate: Optional[float] = None
     #: баланс до покупки

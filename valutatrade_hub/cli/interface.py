@@ -213,7 +213,14 @@ class Engine:
                 create_wallet = False
             else:
                 create_wallet = True
-            info = models.OperationInfo(amount, currency, self._base_currency)
+            info = models.OperationInfo(
+                username=self._current_user.username,
+                user_id=self._current_user.user_id,
+                amount=amount,
+                currency=currency,
+                base_currency=self._base_currency,
+                operation_type=operation_type.value
+            )
             self._core.balance_operation(
                 self._current_user.user_id, info, create_wallet
             )

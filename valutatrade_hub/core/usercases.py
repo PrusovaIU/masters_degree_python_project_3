@@ -2,10 +2,12 @@ import secrets
 from pathlib import Path
 
 from .models import User, Wallet, Portfolio, OperationInfo
+from .models.wallet import NegativeBalanceError
 from valutatrade_hub.infra.database import DatabaseManager, DataError
 from .utils import currency_rates as cr
 from .exceptions import CoreError
 from valutatrade_hub.core.exceptions import InsufficientFundsError
+from .decorators import log_action
 
 
 class UserError(CoreError):
@@ -266,6 +268,7 @@ class Core:
                 raise UnknownWalletError(user_id, currency)
         return wallet
 
+    @log_action()
     def balance_operation(
             self,
             user_id: int,
@@ -304,13 +307,8 @@ class Core:
         )
         operation_info.before_balance = wallet.balance
         operation_info.wallet = wallet
-        amount_abs = abs(operation_info.amount)
-        if amount_abs > wallet.balance:
-            raise InsufficientFundsError(
-                wallet.balance, amount_abs, operation_info.currency
-            )
-        wallet.balance += operation_info.amount
         try:
+            wallet.balance += operation_info.amount
             self._db_manager.save_data(Portfolio, self._portfolios)
             operation_info.after_balance = wallet.balance
             operation_info.rate = cr.get_rate(
@@ -321,3 +319,9 @@ class Core:
         except SaveDataError as e:
             wallet.balance -= operation_info.amount
             raise e
+        except NegativeBalanceError:
+            raise InsufficientFundsError(
+                wallet.balance,
+                abs(operation_info.amount),
+                operation_info.currency
+            )

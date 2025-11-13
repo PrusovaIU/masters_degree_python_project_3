@@ -83,7 +83,10 @@ class LoggingConfig(JsonSettingsLoader):
                 f"Допустимые значения: {values_map.keys()}"
             )
 
-    def logger(self, logger_name: str) -> logging.Logger:
+    def logger(
+            self,
+            logger_name: str | None = None
+    ) -> logging.Logger:
         """
         Получение логгера.
 
@@ -97,7 +100,7 @@ class LoggingConfig(JsonSettingsLoader):
             self.logs_dir_path.mkdir(parents=True, exist_ok=True)
             log_path: Path = self.logs_dir_path / self.log_file_name
 
-            logger = logging.getLogger(logger_name)
+            logger = logging.getLogger()
             logger.setLevel(self.log_level)
 
             handler = self._get_log_handler(log_path)

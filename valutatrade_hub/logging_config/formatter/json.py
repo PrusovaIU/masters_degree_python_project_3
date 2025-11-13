@@ -16,4 +16,4 @@ class JSONFormatter(logging.Formatter):
             log_data.update(msg.__dict__)
         else:
             log_data["message"] = msg
-        return dumps(log_data)
+        return dumps(log_data, ensure_ascii=False)
