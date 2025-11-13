@@ -47,20 +47,20 @@ class FieldValidator:
     @classmethod
     def validator(
             cls,
-            class_name: str,
+            mro: tuple[type, ...],
             field_name: str
     ) -> FieldValidatorType | None:
         """
         Получить валидатор для поля класса.
 
-        :param class_name: имя класса.
+        :param mro: кортеж классов, в порядке наследования.
         :param field_name: имя поля.
         :return: валидатор для поля, если он определен, иначе None.
         """
-        if class_name in cls._validators:
-            return cls._validators[class_name].get(field_name)
-        else:
-            return None
+        for _class in mro:
+            if _class.__name__ in cls._validators:
+                return cls._validators[_class.__name__].get(field_name)
+        return None
 
 
 field_validator = FieldValidator

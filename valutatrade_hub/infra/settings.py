@@ -44,11 +44,15 @@ class SettingsLoader(metaclass=ABCMeta):
         return self._path
 
     @classmethod
-    def parameters(cls) -> dict[str, Parameter]:
-        return {
-            name: atr for name, atr in cls.__dict__.items()
-            if isinstance(atr, Parameter) and not name.startswith("_")
-        }
+    def parameters(cls) -> dict[str, 'Parameter']:
+        params = {}
+        for base_cls in cls.__mro__:
+            for name, attr in base_cls.__dict__.items():
+                if (isinstance(attr, Parameter)
+                        and not name.startswith("_")
+                        and name not in params):
+                    params[name] = attr
+        return params
 
     @abstractmethod
     def _parse_file(self, content: str) -> dict[str, Any]:
@@ -119,9 +123,9 @@ class SettingsLoader(metaclass=ABCMeta):
 
         :raises ValidationError: если значение параметра не прошло валидацию.
         """
-        class_name = self.__class__.__name__
+        mro = self.__class__.__mro__
         validator: FieldValidatorType = \
-            FieldValidator.validator(class_name, field_name)
+            FieldValidator.validator(mro, field_name)
         if validator:
             try:
                 value = validator(self, value)
