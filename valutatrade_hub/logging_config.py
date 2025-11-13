@@ -1,5 +1,3 @@
-from dataclasses import dataclass
-from enum import Enum
 from pathlib import Path
 
 from valutatrade_hub.infra.settings import JsonSettingsLoader, Parameter
@@ -12,21 +10,35 @@ from json import dumps
 
 
 class LogRecord(NamedTuple):
+    """Запись лога"""
+    #: действие:
     action: str
+    #: имя пользователя:
     username: str
+    #: id пользователя:
     user_id: int
-    result: str
+    #: результат выполнения действия (True - успех, False - ошибка):
+    result: bool
+    #: код валюты, в которой проводится операция:
     currency_code: str | None = None
+    #: сумма операции (для операций с балансом):
     amount: float | None = None
+    #: курс для валюты, в которой проводится операция относительно базовой
+    #: валюты:
     rate: str | None = None
+    #: базовая валюта:
     base: str | None = None
+    #: тип ошибки, если произошла ошибка, иначе None:
     error_type: str | None = None
+    #: сообщение об ошибке, если произошла ошибка, иначе None:
     error_message: str | None = None
+    #: дополнительные данные для лога
     message: str | None = None
 
 
 
 class JSONFormatter(logging.Formatter):
+    """Форматтер для логов в формате JSON"""
     def format(self, record: logging.LogRecord):
         log_data = {
             "timestamp": self.formatTime(record, "%Y-%m-%dT%H:%M:%S"),
@@ -40,11 +52,13 @@ class JSONFormatter(logging.Formatter):
         return dumps(log_data)
 
 
+#: типы единиц измерения для ротации логов:
 TimeUnit = Literal["s", "m", "h", "d"]
 SizeUnit = Literal["b", "kb", "mb", "gb", "tb"]
 
 
 class Rotation(NamedTuple):
+    """Ротация логов"""
     value: int
     unit: TimeUnit | SizeUnit
 
@@ -61,8 +75,13 @@ class LoggingConfig(JsonSettingsLoader):
     backup_count: int = Parameter(int, default=5)
     encoding: str = Parameter(default="utf-8")
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._logger: logging.Logger | None = None
+
     @field_validator("rotation")
     def _validate_rotation(self, value: str) -> Rotation:
+        """Валидатор для параметра rotation."""
         matching = match(r"^(\d+) ?([a-zA-Z]+)$", value)
         if not matching:
             raise ValueError(
@@ -102,19 +121,36 @@ class LoggingConfig(JsonSettingsLoader):
             )
 
     def logger(self, logger_name: str) -> logging.Logger:
-        self.logs_dir_path.mkdir(parents=True, exist_ok=True)
-        log_path: Path = self.logs_dir_path / self.log_file_name
+        """
+        Получение логгера.
 
-        logger = logging.getLogger(logger_name)
-        logger.setLevel(self.log_level)
+        Если логгер не был создан, то он создается. Иначе возвращается
+        уже созданный логгер.
 
-        handler = self._get_log_handler(log_path)
-        handler.setFormatter(JSONFormatter())
+        :param logger_name: имя логгера.
+        :return: логгер.
+        """
+        if not self._logger:
+            self.logs_dir_path.mkdir(parents=True, exist_ok=True)
+            log_path: Path = self.logs_dir_path / self.log_file_name
 
-        logger.addHandler(handler)
-        return logger
+            logger = logging.getLogger(logger_name)
+            logger.setLevel(self.log_level)
+
+            handler = self._get_log_handler(log_path)
+            handler.setFormatter(JSONFormatter())
+
+            logger.addHandler(handler)
+            self._logger = logger
+        return self._logger
 
     def _get_log_handler(self, log_path: Path) -> logging.Handler:
+        """
+        Создание обработчика логов.
+
+        :param log_path: путь до файла логов.
+        :return: обработчик логов.
+        """
         if self.rotation.unit in get_args(TimeUnit):
             handler = handlers.TimedRotatingFileHandler(
                 log_path,
