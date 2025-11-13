@@ -22,4 +22,13 @@ if __name__ == '__main__':
             result="success"
         )
     )
+    logger.warning(
+        LogRecord(
+            action="test",
+            username="user",
+            user_id=1,
+            result="success",
+            message="test"
+        )
+    )
 

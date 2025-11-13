@@ -1,3 +1,4 @@
+from enum import Enum
 from pathlib import Path
 
 from valutatrade_hub.infra.settings import JsonSettingsLoader, Parameter
@@ -17,8 +18,8 @@ class LogRecord(NamedTuple):
     username: str
     #: id пользователя:
     user_id: int
-    #: результат выполнения действия (True - успех, False - ошибка):
-    result: bool
+    #: результат выполнения действия:
+    result: str
     #: код валюты, в которой проводится операция:
     currency_code: str | None = None
     #: сумма операции (для операций с балансом):
@@ -36,12 +37,14 @@ class LogRecord(NamedTuple):
     message: str | None = None
 
 
+_DATETIME_FORMAT = "%Y-%m-%dT%H:%M:%S"
+
 
 class JSONFormatter(logging.Formatter):
     """Форматтер для логов в формате JSON"""
     def format(self, record: logging.LogRecord):
         log_data = {
-            "timestamp": self.formatTime(record, "%Y-%m-%dT%H:%M:%S"),
+            "timestamp": self.formatTime(record, _DATETIME_FORMAT),
             "level": record.levelname
         }
         msg = record.msg
@@ -50,6 +53,28 @@ class JSONFormatter(logging.Formatter):
         else:
             log_data["message"] = msg
         return dumps(log_data)
+
+
+class StrFormatter(logging.Formatter):
+    """Форматтер для логов в строковом формате"""
+    def format(self, record: logging.LogRecord):
+        log_els = [
+            record.levelname,
+            self.formatTime(record, _DATETIME_FORMAT)
+        ]
+        msg = record.msg
+        if isinstance(msg, LogRecord):
+            log_els.extend([
+                msg.action,
+                f"user=\'{msg.username}\'",
+                f"currency=\'{msg.currency_code}\'",
+                f"rate=\'{msg.rate}\'",
+                f"base=\'{msg.base}\'",
+                f"result={msg.result}"
+            ])
+        else:
+            log_els.append(str(msg))
+        return " ".join(log_els)
 
 
 #: типы единиц измерения для ротации логов:
@@ -63,6 +88,11 @@ class Rotation(NamedTuple):
     unit: TimeUnit | SizeUnit
 
 
+class LogFormat(Enum):
+    json = "json"
+    str = "str"
+
+
 class LoggingConfig(JsonSettingsLoader):
     #: имя файла логов:
     log_file_name: str = Parameter(default="action.log")
@@ -74,6 +104,7 @@ class LoggingConfig(JsonSettingsLoader):
     log_level: int = Parameter(default="INFO")
     backup_count: int = Parameter(int, default=5)
     encoding: str = Parameter(default="utf-8")
+    format: LogFormat = Parameter(LogFormat, default=LogFormat.json.value)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -138,7 +169,10 @@ class LoggingConfig(JsonSettingsLoader):
             logger.setLevel(self.log_level)
 
             handler = self._get_log_handler(log_path)
-            handler.setFormatter(JSONFormatter())
+            formatter = StrFormatter() \
+                if self.format == LogFormat.str \
+                else JSONFormatter()
+            handler.setFormatter(formatter)
 
             logger.addHandler(handler)
             self._logger = logger
@@ -155,17 +189,31 @@ class LoggingConfig(JsonSettingsLoader):
             handler = handlers.TimedRotatingFileHandler(
                 log_path,
                 when=self.rotation.unit,
+                interval=self.rotation.value,
                 backupCount=self.backup_count,
                 encoding=self.encoding
             )
         else:
             handler = handlers.RotatingFileHandler(
                 log_path,
-                maxBytes=self.rotation.value,
+                maxBytes=self._convert_to_bytes(
+                    self.rotation.value,
+                    self.rotation.unit
+                ),
                 backupCount=self.backup_count,
                 encoding=self.encoding
             )
         return handler
 
-
+    @staticmethod
+    def _convert_to_bytes(value: float, unit: SizeUnit) -> int:
+        """Конвертация размера в байты."""
+        multipliers = {
+            "b": 1,
+            "kb": 1024,
+            "mb": 1024 ** 2,
+            "gb": 1024 ** 3,
+            "tb": 1024 ** 4
+        }
+        return value * multipliers[unit]
 
