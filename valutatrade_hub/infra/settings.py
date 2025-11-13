@@ -1,8 +1,11 @@
 import json
+from collections.abc import Callable
+
 import toml
 from pathlib import Path
 from typing import Any, NamedTuple
 from abc import ABCMeta, abstractmethod
+from .validator import FieldValidatorType, FieldValidator
 
 
 class SettingsLoaderError(Exception):
@@ -95,14 +98,38 @@ class SettingsLoader(metaclass=ABCMeta):
             if (not alias in parsed_content
                     and param.default is _NotSet):
                 raise UnknownParameterError(
-                    f"Не найден параметр \"{param.name}\" в файле "
+                    f"Не найден параметр \"{name}\" в файле "
                     f"настроек \"{self._path}\""
                 )
             value = parsed_content.get(alias, param.default)
             ptype_value = param.ptype(value)
-            settings[name] = ptype_value
-            setattr(self, name, ptype_value)
+            validated_value = self._validate(ptype_value, name)
+            settings[name] = validated_value
+            setattr(self, name, validated_value)
         return settings
+
+
+    def _validate(self, value: Any, field_name: str) -> Any:
+        """
+        Валидация значения параметра.
+
+        :param value: значение параметра.
+        :param field_name: имя параметра.
+        :return: валидированное значение параметра.
+
+        :raises ValidationError: если значение параметра не прошло валидацию.
+        """
+        class_name = self.__class__.__name__
+        validator: FieldValidatorType = \
+            FieldValidator.validator(class_name, field_name)
+        if validator:
+            try:
+                value = validator(self, value)
+            except Exception as err:
+                raise ValueError(
+                    f"Невалидный параметр \"{field_name}\": {err}"
+                )
+        return value
 
     def get(self, key: str, default: Any = _NotSet) -> Any:
         """
