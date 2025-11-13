@@ -8,12 +8,21 @@ import logging
 from logging import handlers
 from re import match
 from typing import Literal, get_args, NamedTuple
-from datetime import datetime
+from json import dumps
 
 
-# class LogRecord(NamedTuple):
-#     timestamp: datetime
-#     level: l
+class LogRecord(NamedTuple):
+    action: str
+    username: str
+    user_id: int
+    result: str
+    currency_code: str | None = None
+    amount: float | None = None
+    rate: str | None = None
+    base: str | None = None
+    error_type: str | None = None
+    error_message: str | None = None
+    message: str | None = None
 
 
 
@@ -21,22 +30,14 @@ class JSONFormatter(logging.Formatter):
     def format(self, record: logging.LogRecord):
         log_data = {
             "timestamp": self.formatTime(record, "%Y-%m-%dT%H:%M:%S"),
-            "level": record.levelname,
-            "action": getattr(record, "action", None),
-            "username": getattr(record, "username", None),
-            "user_id": getattr(record, "user_id", None),
-            "currency_code": getattr(record, "currency_code", None),
-            "amount": getattr(record, "amount", None),
-            "rate": getattr(record, "rate", None),
-            "base": getattr(record, "base", None),
-            "result": getattr(record, "result", "OK"),
+            "level": record.levelname
         }
-        if hasattr(record, "verbose") and record.verbose:
-            log_data["verbose"] = record.verbose
-        if hasattr(record, "error_type"):
-            log_data["error_type"] = record.error_type
-        if hasattr(record, "error_message"):
-            log_data["error_message"] = record.error_message
+        msg = record.msg
+        if isinstance(msg, LogRecord):
+            log_data.update(msg._asdict())
+        else:
+            log_data["message"] = msg
+        return dumps(log_data)
 
 
 TimeUnit = Literal["s", "m", "h", "d"]
@@ -50,19 +51,18 @@ class Rotation(NamedTuple):
 
 class LoggingConfig(JsonSettingsLoader):
     #: имя файла логов:
-    log_file_name: str = Parameter(str, default="action.log")
+    log_file_name: str = Parameter(default="action.log")
     #: путь до директории с логами:
     logs_dir_path: Path = Parameter(Path)
     #: ротация логов (значение, ед. измерения):
     rotation: Rotation = Parameter()
     #: уровень логирования:
     log_level: int = Parameter(default="INFO")
-    backup_count: int = Parameter(default=5)
+    backup_count: int = Parameter(int, default=5)
     encoding: str = Parameter(default="utf-8")
 
-    @staticmethod
     @field_validator("rotation")
-    def _validate_rotation(value: str) -> Rotation:
+    def _validate_rotation(self, value: str) -> Rotation:
         matching = match(r"^(\d+) ?([a-zA-Z]+)$", value)
         if not matching:
             raise ValueError(
@@ -80,13 +80,12 @@ class LoggingConfig(JsonSettingsLoader):
                 f"Некорректная единица измерения для параметра "
                 f"\"rotation\". "
                 f"Допустимые значения: "
-                f"{get_args(TimeUnit) + get_args(SizeUnit)}"
+                f"{', '.join(get_args(TimeUnit) + get_args(SizeUnit))}"
             )
         return Rotation(float_value, unit)
 
-    @staticmethod
     @field_validator("log_level")
-    def _validate_log_level(value: str) -> int:
+    def _validate_log_level(self, value: str) -> int:
         """Валидатор для параметра log_level."""
         values_map = {
             "debug": logging.DEBUG,
@@ -95,7 +94,7 @@ class LoggingConfig(JsonSettingsLoader):
             "error": logging.ERROR
         }
         try:
-            return values_map[value]
+            return values_map[value.lower()]
         except KeyError:
             raise ValueError(
                 f"Некорректное значение для параметра \"log_level\". "

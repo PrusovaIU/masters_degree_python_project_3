@@ -1,6 +1,6 @@
 from valutatrade_hub.config import Config
 from valutatrade_hub.cli.interface import Engine
-from valutatrade_hub.logging_config import LoggingConfig
+from valutatrade_hub.logging_config import LoggingConfig, LogRecord
 
 
 if __name__ == '__main__':
@@ -15,6 +15,11 @@ if __name__ == '__main__':
     logger_config.load()
     logger = logger_config.logger("action")
     logger.info(
-        {"message": "test"}
+        LogRecord(
+            action="test",
+            username="user",
+            user_id=1,
+            result="success"
+        )
     )
 
