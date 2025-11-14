@@ -10,6 +10,7 @@ from datetime import datetime
 from .logger import Logger, HTTPLogRecord
 from valutatrade_hub.logging_config.log_record import LogRecord
 import logging
+from traceback import extract_tb
 
 
 class RatesUpdater:
@@ -83,12 +84,14 @@ class RatesUpdater:
                     )
                 )
             except Exception as e:
+                tb = extract_tb(e.__traceback__)
                 self._logger.error(
                     LogRecord(
                         action=action,
                         result="error",
                         error_type=e.__class__.__name__,
-                        error_message=str(e)
+                        error_message=str(e),
+                        message=str(tb)
                     )
                 )
             else:

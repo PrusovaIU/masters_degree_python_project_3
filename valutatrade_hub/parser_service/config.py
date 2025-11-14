@@ -16,6 +16,7 @@ class ParserConfig(JsonSettingsLoader):
     base_currency: str = Parameter(default="USD")
     fiat_currencies: tuple = Parameter(default=("EUR", "GBP", "RUB"))
     crypto_currencies: dict = Parameter(
+        ptype=dict,
         default={
             "bitcoin": "BTC",
             "ethereum": "ETH",
@@ -24,5 +25,5 @@ class ParserConfig(JsonSettingsLoader):
     )
     rates_file_path: str = Parameter(default="data/rates.json")
     history_file_path: str = Parameter(default="data/exchange_rates.json")
-    request_timeout: int = Parameter(default=10)
-    max_history_len: int = Parameter(default=100)
+    request_timeout: int = Parameter(ptype=int, default=10)
+    max_history_len: int = Parameter(ptype=int, default=100)

@@ -36,7 +36,7 @@ class ExchangeRateApiClient(BaseApiClient):
         """
         now = datetime.now()
         rates = []
-        for currency, rate_value in response.json()["rates"].items():
+        for currency, rate_value in response.json()["conversion_rates"].items():
             rate = models.ExchangeRate(
                 from_currency=self._config.base_currency,
                 to_currency=currency,
