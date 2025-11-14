@@ -1,3 +1,5 @@
+from typing import Any
+
 import requests
 
 from .abc import BaseApiClient
@@ -8,6 +10,13 @@ from http import HTTPStatus
 
 
 class CoinGeckoClient(BaseApiClient):
+    @property
+    def info(self) -> dict[str, str]:
+        return {
+            "name": "CoinGecko",
+            "url": self._config.coingecko_url
+        }
+
     def _call_api(self) -> list[models.ExchangeRate]:
         params = {
             "ids": ",".join((self._config.crypto_currencies.values())),

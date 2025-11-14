@@ -1,5 +1,5 @@
 from abc import ABCMeta, abstractmethod
-from typing import Optional
+from typing import Optional, Any
 
 import requests
 from valutatrade_hub.parser_service import models
@@ -12,8 +12,40 @@ class BaseApiClientError(Exception):
     pass
 
 
+class ApiHTTPError(BaseApiClientError):
+    def __init__(self, response: requests.Response):
+        self._response = response
+
+    @property
+    def response(self) -> requests.Response:
+        return self._response
+
+    def __str__(self):
+        return (f"Ошибка при обращении к API: {self._response.text} "
+                f"(status: {self._response.status_code})")
+
+
 class ApiRequestError(BaseApiClientError):
-    pass
+    def __init__(self, url: str, error_type: str, error: str | Exception):
+        self._url = url
+        self._error_type = error_type
+        self._error = str(error)
+
+    @property
+    def url(self) -> str:
+        return self._url
+
+    @property
+    def error_type(self) -> str:
+        return self._error_type
+
+    @property
+    def error(self) -> str:
+        return self._error
+
+    def __str__(self):
+        return (f"Ошибка при обращении к API \"{self._url}\": "
+                f"{self._error} ({self._error_type})")
 
 
 RagesType = dict[str, models.Rate]
@@ -23,6 +55,11 @@ class BaseApiClient(metaclass=ABCMeta):
     def __init__(self, config: ParserConfig):
         self._history: list[models.ExchangeRate] = []
         self._config = config
+
+    @property
+    @abstractmethod
+    def info(self) -> dict[str, str]:
+        pass
 
     @abstractmethod
     def _call_api(self) -> list[models.ExchangeRate]:
@@ -50,6 +87,8 @@ class BaseApiClient(metaclass=ABCMeta):
         :param params: параметры запроса.
         :param json: json тела запроса.
         :return: ответ от API, время выполнения запроса.
+
+        :raises requests.RequestException: ошибка при обращении к API.
         """
         with LeadTime() as lead_time:
             response: requests.Response = requests.request(
@@ -97,8 +136,7 @@ class BaseApiClient(metaclass=ABCMeta):
             if len(self._history) > self._config.max_history_len:
                 self._history = self._history[-self._config.max_history_len:]
             return self._form_rages(data)
+        except requests.HTTPError as e:
+            raise ApiHTTPError(e.response)
         except requests.RequestException as e:
-            raise ApiRequestError(
-                f"Не удалось получить данные от \"{e.request.url}\": {e} "
-                f"({e.__class__.__name__})"
-            )
+            raise ApiRequestError(e.request.url, e.__class__.__name__, e)

@@ -1,11 +1,30 @@
+import inspect
+
+from requests import Response
+
 from .config import ParserConfig
-from .api_clients.abc import BaseApiClient, RagesType
+from .api_clients.abc import (BaseApiClient, RagesType, ApiRequestError,
+                              ApiHTTPError)
 from .models.storage import Storage
 from datetime import datetime
+from .logger import Logger, HTTPLogRecord
+from valutatrade_hub.logging_config.log_record import LogRecord
+import logging
 
 
 class RatesUpdater:
-    def __init__(self, config: ParserConfig, *api_clients: BaseApiClient):
+    """
+    Класс для обновления данных о курсах валют.
+
+    :param config: Конфигурация парсера.
+    :api_clients: Клиенты для получения данных о курсах валют.
+    """
+    def __init__(
+            self,
+            config: ParserConfig,
+            logger: Logger,
+            *api_clients: BaseApiClient
+    ):
         if any(
                 not isinstance(client, BaseApiClient)
                 for client in api_clients
@@ -16,6 +35,7 @@ class RatesUpdater:
         self._api_clients = api_clients
         self._storage: Storage | None = None
         self._config = config
+        self._logger: logging.Logger = logger.logger()
 
     @property
     def storage(self) -> Storage:
@@ -32,10 +52,53 @@ class RatesUpdater:
                 Ошибка при запросе к API.
         """
         last_refresh = datetime.now()
+        action = inspect.stack()[0].function
         pairs: RagesType = {}
         for client in self._api_clients:
-            rates: RagesType = client.fetch_rates()
-            pairs.update(rates)
+            try:
+                rates: RagesType = client.fetch_rates()
+                pairs.update(rates)
+            except ApiHTTPError as e:
+                response: Response = e.response
+                self._logger.error(
+                    HTTPLogRecord(
+                        action=action,
+                        result="error",
+                        error_type=e.__class__.__name__,
+                        error_message=str(e),
+                        url=response.url,
+                        response_status_code=response.status_code,
+                        response_text=response.text
+                    )
+                )
+            except ApiRequestError as e:
+                self._logger.error(
+                    HTTPLogRecord(
+                        action=action,
+                        result="error",
+                        error_type=e.error_type,
+                        error_message=e.error,
+                        message=str(e),
+                        url=e.url
+                    )
+                )
+            except Exception as e:
+                self._logger.error(
+                    LogRecord(
+                        action=action,
+                        result="error",
+                        error_type=e.__class__.__name__,
+                        error_message=str(e)
+                    )
+                )
+            else:
+                self._logger.info(
+                    LogRecord(
+                        action=action,
+                        result="success",
+                        message=str(client.info)
+                    )
+                )
         self._storage = Storage(
             pairs=pairs,
             last_refresh=last_refresh

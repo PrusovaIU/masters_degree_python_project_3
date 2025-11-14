@@ -1,3 +1,5 @@
+from typing import Any
+
 from .abc import BaseApiClient
 from valutatrade_hub.parser_service import models
 import requests
@@ -6,6 +8,13 @@ from http import HTTPStatus
 
 
 class ExchangeRateApiClient(BaseApiClient):
+    @property
+    def info(self) -> dict[str, str]:
+        return {
+            "name": "ExchangeRateApi",
+            "url": self._config.exchangerate_api_url
+        }
+
     def _call_api(self) -> list[models.ExchangeRate]:
         url = (f"{self._config.exchangerate_api_url}/"
                f"{self._config.exchangerate_api_key}"
