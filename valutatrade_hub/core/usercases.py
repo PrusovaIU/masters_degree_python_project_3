@@ -302,8 +302,9 @@ class Core:
 
         :raises CoreError: если не удалось совершить покупку.
         """
+        #валидация amount и currency реализована в OperationInfo
         wallet = self.get_wallet(
-            user_id, operation_info.currency, create_wallet
+            user_id, operation_info.currency_code, create_wallet
         )
         operation_info.before_balance = wallet.balance
         operation_info.wallet = wallet
@@ -312,7 +313,7 @@ class Core:
             self._db_manager.save_data(Portfolio, self._portfolios)
             operation_info.after_balance = wallet.balance
             operation_info.rate = cr.get_rate(
-                operation_info.base_currency, operation_info.currency
+                operation_info.base_currency, operation_info.currency_code
             )
         except cr.CurrencyRatesError as e:
             print(e)
@@ -323,5 +324,5 @@ class Core:
             raise InsufficientFundsError(
                 wallet.balance,
                 abs(operation_info.amount),
-                operation_info.currency
+                operation_info.currency_code
             )

@@ -13,10 +13,11 @@ class FiatCurrency(Currency):
 
     def __init__(self, name: str, code: str, issuing_country: str):
         super().__init__(name, code)
-        if not match(r"^\w+$", issuing_country):
+        if not match(r"^[\w ]+$", issuing_country):
             raise ValueError(
-                "Страна эмиссии не должна быть пустой строкой и "
-                "должна состоять только из букв английского алфавита."
+                f"Страна эмиссии не должна быть пустой строкой и "
+                f"должна состоять только из букв английского алфавита. "
+                f"Введено: \"{issuing_country}\" для валюты {self.code}"
             )
         self.issuing_country = issuing_country
 

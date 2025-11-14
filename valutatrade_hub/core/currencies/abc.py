@@ -4,7 +4,7 @@ from re import match
 
 class Currency(metaclass=ABCMeta):
     def __init__(self, name: str, code: str, *args, **kwargs):
-        if not match(r"^\w+$", name):
+        if not match(r"^[\w ]+$", name):
             raise ValueError(
                 f"Некорректное название валюты. Название должно состоять из "
                 f"латинских букв и цифр. Получено: {name}"

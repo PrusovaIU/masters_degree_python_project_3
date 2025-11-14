@@ -47,6 +47,6 @@ def get_currency(code: str) -> Currency:
     """
     try:
         return _CURRENCY_REGISTRY[code]
-    except KeyError as e:
+    except KeyError:
         raise CurrencyNotFoundError(code)
 

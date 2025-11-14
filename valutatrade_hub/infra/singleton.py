@@ -5,7 +5,9 @@ class SingletonMeta(ABCMeta):
     """
     Метакласс для создания синглтона.
 
-    Используется в valutatrade_hub.config
+    Используется в
+        - valutatrade_hub.config
+        - valutatrate_hub.core.logger
 
     Реализация через метакласс предпочтительнее, чем через __new__,
     потому что она более гибкая и переопределяет процесс создания класса на

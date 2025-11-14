@@ -217,7 +217,7 @@ class Engine:
                 username=self._current_user.username,
                 user_id=self._current_user.user_id,
                 amount=amount,
-                currency=currency,
+                currency_code=currency,
                 base_currency=self._base_currency,
                 operation_type=operation_type.value
             )
@@ -237,11 +237,11 @@ class Engine:
                 evaluative_amount = -1
             print(
                 f"{operation_type.value.capitalize()} выполнена: "
-                f"{amount:,.4f} {info.currency} "
+                f"{amount:,.4f} {info.currency_code} "
                 f"по курсу {rate:,.2f} "
-                f"{self._base_currency}/{info.currency}\n"
+                f"{self._base_currency}/{info.currency_code}\n"
                 f"Изменения в портфеле:\n"
-                f"- {info.currency}: было {info.before_balance:,.4f} "
+                f"- {info.currency_code}: было {info.before_balance:,.4f} "
                 f"-> стало {info.after_balance:,.4f}\n"
                 f"Оценочная стоимость: "
                 f"{evaluative_amount:,.2f} {self._base_currency}"

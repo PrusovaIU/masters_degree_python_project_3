@@ -52,7 +52,7 @@ def _error_log(
             message=verbose,
             username=operation_info.username,
             user_id=operation_info.user_id,
-            currency_code=operation_info.currency,
+            currency_code=operation_info.currency_code,
             amount=operation_info.amount,
             rate=operation_info.rate,
             base=operation_info.base_currency
@@ -85,7 +85,7 @@ def _success_log(
             message=verbose,
             username=operation_info.username,
             user_id=operation_info.user_id,
-            currency_code=operation_info.currency,
+            currency_code=operation_info.currency_code,
             amount=operation_info.amount,
             rate=operation_info.rate,
             base=operation_info.base_currency
