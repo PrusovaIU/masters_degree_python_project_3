@@ -70,6 +70,10 @@ class BaseApiClient(metaclass=ABCMeta):
         """
         pass
 
+    @classmethod
+    def rate_key(cls, from_currency: str, to_currency: str) -> str:
+        return f"{from_currency}_{to_currency}"
+
     def _request(
             self,
             url: str,
@@ -102,8 +106,8 @@ class BaseApiClient(metaclass=ABCMeta):
         response.raise_for_status()
         return response, lead_time.duration
 
-    @staticmethod
     def _form_rages(
+            self,
             exchange_rates: list[models.ExchangeRate]
     ) -> RagesType:
         """
@@ -114,7 +118,7 @@ class BaseApiClient(metaclass=ABCMeta):
         """
         rates = {}
         for item in exchange_rates:
-            key = f"{item.from_currency}_{item.to_currency}"
+            key = self.rate_key(item.from_currency, item.to_currency)
             rates[key] = models.Rate(
                 item.rate,
                 item.timestamp,

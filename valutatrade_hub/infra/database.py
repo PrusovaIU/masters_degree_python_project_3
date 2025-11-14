@@ -57,7 +57,6 @@ class DatabaseManager:
         """
         return self._dir_path / f"{obj.__name__.lower()}.json"
 
-
     def read_file(self, obj: type) -> list:
         """
         Загрузка данных из файла.

@@ -12,6 +12,25 @@ from valutatrade_hub.logger import Logger
 from valutatrade_hub.logging_config.log_record import LogRecord
 import logging
 from traceback import extract_tb
+from .models import Rate
+
+
+class UnknownRateError(Exception):
+    def __init__(self, from_currency: str, to_currency: str):
+        self._from_currency = from_currency
+        self._to_currency = to_currency
+
+    @property
+    def from_currency(self) -> str:
+        return self._from_currency
+
+    @property
+    def to_currency(self) -> str:
+        return self._to_currency
+
+    def __str__(self):
+        return (f"Неизвестный курс "
+                f"{self._from_currency} -> {self._to_currency}")
 
 
 class RatesUpdater:
@@ -108,3 +127,40 @@ class RatesUpdater:
             last_refresh=last_refresh
         )
 
+    def _get_rate_from_storage(self, key: str) -> float | None:
+        try:
+            rate: Rate = self._storage.pairs[key]
+            return rate.rate
+        except KeyError:
+            return None
+
+    def _get_rate(self, from_currency: str, to_currency: str) -> Rate | None:
+        """
+        Получение курса валюты из хранилища.
+
+        :param from_currency: код конвертируемой валюты.
+        :param to_currency: код валюты, в которую конвертируется.
+        :return: курс валюты, если он есть в хранилище, иначе None.
+        """
+        key: str = BaseApiClient.rate_key(from_currency, to_currency)
+        return self._storage.pairs.get(key)
+
+    def get_rate(self, from_currency: str, to_currency: str) -> float:
+        """
+        Получение курса валюты.
+
+        :param from_currency: код конвертируемой валюты.
+        :param to_currency: код валюты, в которую конвертируется.
+        :return: курс валюты.
+
+        :raises UnknownRateError: если курс не найден.
+        """
+        rate: Rate = self._get_rate(from_currency, to_currency)
+        if rate:
+            return rate.rate
+
+        rate = self._get_rate(to_currency, from_currency)
+        if rate:
+            return 1 / rate.rate
+
+        raise UnknownRateError(from_currency, to_currency)
