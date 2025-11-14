@@ -1,0 +1,153 @@
+import logging
+from enum import Enum
+from logging import handlers
+from pathlib import Path
+from re import match
+from typing import Literal, NamedTuple, get_args
+
+from .formatter import JSONFormatter, StrFormatter
+from valutatrade_hub.infra import JsonSettingsLoader, Parameter
+from valutatrade_hub.infra.validator import field_validator
+
+#: типы единиц измерения для ротации логов:
+TimeUnit = Literal["s", "m", "h", "d"]
+SizeUnit = Literal["b", "kb", "mb", "gb", "tb"]
+
+
+class Rotation(NamedTuple):
+    """Ротация логов"""
+    value: int
+    unit: TimeUnit | SizeUnit
+
+
+class LogFormat(Enum):
+    json = "json"
+    str = "str"
+
+
+class LoggingConfig(JsonSettingsLoader):
+    #: имя файла логов:
+    log_file_name: str = Parameter(default="action.log")
+    #: путь до директории с логами:
+    logs_dir_path: Path = Parameter(Path)
+    #: ротация логов (значение, ед. измерения):
+    rotation: Rotation = Parameter()
+    #: уровень логирования:
+    log_level: int = Parameter(default="INFO")
+    backup_count: int = Parameter(int, default=5)
+    encoding: str = Parameter(default="utf-8")
+    format: LogFormat = Parameter(LogFormat, default=LogFormat.json.value)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._logger: logging.Logger | None = None
+
+    @field_validator("rotation")
+    def _validate_rotation(self, value: str) -> Rotation:
+        """Валидатор для параметра rotation."""
+        matching = match(r"^(\d+) ?([a-zA-Z]+)$", value)
+        if not matching:
+            raise ValueError(
+                "Некорректное значение для параметра \"rotation\"."
+            )
+        float_value = int(matching.group(1))
+        if float_value <= 0:
+            raise ValueError(
+                "Некорректное значение для параметра \"rotation\". "
+                "Значение должно быть больше 0."
+            )
+        unit = matching.group(2).lower()
+        if unit not in get_args(TimeUnit) + get_args(SizeUnit):
+            raise ValueError(
+                f"Некорректная единица измерения для параметра "
+                f"\"rotation\". "
+                f"Допустимые значения: "
+                f"{', '.join(get_args(TimeUnit) + get_args(SizeUnit))}"
+            )
+        return Rotation(float_value, unit)
+
+    @field_validator("log_level")
+    def _validate_log_level(self, value: str) -> int:
+        """Валидатор для параметра log_level."""
+        values_map = {
+            "debug": logging.DEBUG,
+            "info": logging.INFO,
+            "warning": logging.WARNING,
+            "error": logging.ERROR
+        }
+        try:
+            return values_map[value.lower()]
+        except KeyError:
+            raise ValueError(
+                f"Некорректное значение для параметра \"log_level\". "
+                f"Допустимые значения: {values_map.keys()}"
+            )
+
+    def logger(
+            self,
+            logger_name: str | None = None
+    ) -> logging.Logger:
+        """
+        Получение логгера.
+
+        Если логгер не был создан, то он создается. Иначе возвращается
+        уже созданный логгер.
+
+        :param logger_name: имя логгера.
+        :return: логгер.
+        """
+        if not self._logger:
+            self.logs_dir_path.mkdir(parents=True, exist_ok=True)
+            log_path: Path = self.logs_dir_path / self.log_file_name
+
+            logger = logging.getLogger()
+            logger.setLevel(self.log_level)
+
+            handler = self._get_log_handler(log_path)
+            _formatter = StrFormatter() \
+                if self.format == LogFormat.str \
+                else JSONFormatter()
+            handler.setFormatter(_formatter)
+
+            logger.addHandler(handler)
+            self._logger = logger
+        return self._logger
+
+    def _get_log_handler(self, log_path: Path) -> logging.Handler:
+        """
+        Создание обработчика логов.
+
+        :param log_path: путь до файла логов.
+        :return: обработчик логов.
+        """
+        if self.rotation.unit in get_args(TimeUnit):
+            handler = handlers.TimedRotatingFileHandler(
+                log_path,
+                when=self.rotation.unit,
+                interval=self.rotation.value,
+                backupCount=self.backup_count,
+                encoding=self.encoding
+            )
+        else:
+            handler = handlers.RotatingFileHandler(
+                log_path,
+                maxBytes=self._convert_to_bytes(
+                    self.rotation.value,
+                    self.rotation.unit
+                ),
+                backupCount=self.backup_count,
+                encoding=self.encoding
+            )
+        return handler
+
+    @staticmethod
+    def _convert_to_bytes(value: float, unit: SizeUnit) -> int:
+        """Конвертация размера в байты."""
+        multipliers = {
+            "b": 1,
+            "kb": 1024,
+            "mb": 1024 ** 2,
+            "gb": 1024 ** 3,
+            "tb": 1024 ** 4
+        }
+        return value * multipliers[unit]
