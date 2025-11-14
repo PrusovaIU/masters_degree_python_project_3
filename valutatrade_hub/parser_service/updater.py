@@ -7,7 +7,8 @@ from .api_clients.abc import (BaseApiClient, RagesType, ApiRequestError,
                               ApiHTTPError)
 from .models.storage import Storage
 from datetime import datetime
-from .logger import Logger, HTTPLogRecord
+from .log_record import HTTPLogRecord
+from valutatrade_hub.logger import Logger
 from valutatrade_hub.logging_config.log_record import LogRecord
 import logging
 from traceback import extract_tb

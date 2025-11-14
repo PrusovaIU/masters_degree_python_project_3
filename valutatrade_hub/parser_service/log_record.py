@@ -20,7 +20,3 @@ class HTTPLogRecord(LogRecord):
         return (f"url='{self.url}' "
                 f"response_status_code={self.response_status_code} "
                 f"response_text='{self.response_text}'")
-
-
-class Logger(LoggingConfig, metaclass=SingletonMeta):
-    pass

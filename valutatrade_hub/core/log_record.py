@@ -1,7 +1,5 @@
 from valutatrade_hub.logging_config.log_record import LogRecord
 from dataclasses import dataclass
-from valutatrade_hub.logging_config import LoggingConfig
-from valutatrade_hub.infra.singleton import SingletonMeta
 
 
 @dataclass
@@ -34,7 +32,3 @@ class BalanceLogRecord(LogRecord):
                     f"rate='{rate}' "
                     f"base='{self.base}' "
                     f"result='{self.result}'")
-
-
-class Logger(LoggingConfig, metaclass=SingletonMeta):
-    pass

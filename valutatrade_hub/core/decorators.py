@@ -2,7 +2,8 @@ import logging
 from functools import wraps
 
 from valutatrade_hub.logging_config.log_record import LogRecord
-from .logger import BalanceLogRecord, Logger
+from .log_record import BalanceLogRecord
+from ..logger import Logger
 from .models.operation_info import OperationInfo
 
 
