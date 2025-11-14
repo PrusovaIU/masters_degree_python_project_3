@@ -5,7 +5,7 @@ from valutatrade_hub.core.utils.currency_rates import get_exchange_rate, RatesTy
 from enum import Enum
 
 
-class ProtfolioJsonKeys(Enum):
+class PortfolioJsonKeys(Enum):
     user = "user"
     wallets = "wallets"
 
@@ -29,7 +29,7 @@ class Portfolio:
 
     @property
     def wallets(self) -> dict[str, Wallet]:
-        return self._wallets
+        return self._wallets.copy()
 
     def add_currency(self, currency_code: str) -> Wallet:
         """
@@ -40,7 +40,7 @@ class Portfolio:
         """
         if currency_code in self._wallets:
             raise ValueError(
-                f"У пользователя {self._user.user_id} уже есть кошелек для "
+                f"У пользователя {self._user} уже есть кошелек для "
                 f"валюты {currency_code}"
             )
         new_wallet = Wallet(currency_code, 0)
@@ -78,8 +78,8 @@ class Portfolio:
 
     @classmethod
     def load(cls, data: dict) -> "Portfolio":
-        user_id = data[ProtfolioJsonKeys.user.value]
-        wallets_data = data[ProtfolioJsonKeys.wallets.value]
+        user_id = data[PortfolioJsonKeys.user.value]
+        wallets_data = data[PortfolioJsonKeys.wallets.value]
         wallets = {}
         for currency_code, wallet in wallets_data.items():
             wallets[currency_code] = Wallet.load(currency_code, wallet)
@@ -88,8 +88,8 @@ class Portfolio:
 
     def dump(self) -> dict:
         return {
-            ProtfolioJsonKeys.user.value: self._user,
-            ProtfolioJsonKeys.wallets.value: {
+            PortfolioJsonKeys.user.value: self._user,
+            PortfolioJsonKeys.wallets.value: {
                 wallet.currency_code: wallet.dump()
                 for wallet in self._wallets.values()
             }
