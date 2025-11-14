@@ -41,6 +41,8 @@ class Wallet:
         :param amount: сумма пополнения.
         :return: остаток на счете.
         """
+        if amount <= 0:
+            raise ValueError("Сумма пополнения должна быть положительной")
         self.balance += amount
         return self._balance
 
@@ -51,6 +53,8 @@ class Wallet:
         :param amount: сумма снятия.
         :return: остаток на счете.
         """
+        if amount <= 0:
+            raise ValueError("Сумма снятия должна быть положительной")
         if self._balance < amount:
             raise InsufficientFundsError(
                 self._balance,
