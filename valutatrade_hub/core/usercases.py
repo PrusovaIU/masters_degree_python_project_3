@@ -62,6 +62,7 @@ class Core:
             data_path: Path,
             user_passwd_min_length: int
     ):
+        User.set_min_password_length(user_passwd_min_length)
         self._user_passwd_min_length = user_passwd_min_length
         self._db_manager = DatabaseManager(data_path)
         try:
@@ -115,7 +116,6 @@ class Core:
 
         :raises CoreError: если не удалось создать нового пользователя
         """
-        self._check_user_parameters(username, password)
         if username in self.user_names:
             raise UserIsAlreadyExistError(username)
         user_id: int = max(
@@ -132,23 +132,6 @@ class Core:
         self._users.append(user)
         self._db_manager.save_data(User, self._users)
         return user
-
-    def _check_user_parameters(self, username: str, password: str) -> None:
-        """
-        Проверка параметров пользователя.
-
-        :param username: имя пользователя.
-        :param password: пароль пользователя.
-        :return: None.
-
-        :raises ValueError: если параметры пользователя не прошли проверку.
-        """
-        if not username:
-            raise ValueError("Имя пользователя не может быть пустым")
-        if not password:
-            raise ValueError("Пароль не может быть пустым")
-        if len(password) < self._user_passwd_min_length:
-            raise ValueError("Пароль должен быть не короче 4 символов")
 
     def _new_portfolio(self, user: User) -> Portfolio:
         """
@@ -302,7 +285,7 @@ class Core:
 
         :raises CoreError: если не удалось совершить покупку.
         """
-        #валидация amount и currency реализована в OperationInfo
+        # валидация amount и currency реализована в OperationInfo
         wallet = self.get_wallet(
             user_id, operation_info.currency_code, create_wallet
         )

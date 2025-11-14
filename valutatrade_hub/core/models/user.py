@@ -13,6 +13,14 @@ class UserParameterName(Enum):
 
 
 class User:
+    _MIN_PASSWORD_LENGTH = 4
+
+    @classmethod
+    def set_min_password_length(cls, length: int) -> None:
+        if length <= 0:
+            raise ValueError("Минимальная длина пароля должна быть больше 0.")
+        cls._MIN_PASSWORD_LENGTH = length
+
     def __init__(
             self,
             user_id: int,
@@ -30,6 +38,8 @@ class User:
         :param registration_date: дата регистрации пользователя.
         :param hashed_password: хэшированный пароль пользователя.
         """
+        if not username:
+            raise ValueError("Имя пользователя не может быть пустым.")
         self._user_id = user_id
         self._username = username
         self._solt = solt
@@ -104,6 +114,13 @@ class User:
         :param password: пароль.
         :return: хэшированный пароль.
         """
+        if not password:
+            raise ValueError("Пароль не может быть пустым.")
+        if len(password) < self._MIN_PASSWORD_LENGTH:
+            raise ValueError(
+                f"Пароль должен быть не короче {self._MIN_PASSWORD_LENGTH} "
+                f"символов."
+            )
         encoded_password = (password + self._solt).encode("utf-8")
         return sha256(encoded_password).hexdigest()
 
