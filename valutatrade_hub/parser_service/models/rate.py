@@ -2,8 +2,6 @@ from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
 
-from valutatrade_hub.parser_service import models
-
 
 class RateJsonKey(Enum):
     rate = "rate"
@@ -28,7 +26,7 @@ class Rate:
         }
 
 
-RagesType = dict[str, models.Rate]  # {from_currency_to_currency: Rate}
+RatesType = dict[str, Rate]  # {from_currency_to_currency: Rate}
 
 
 def rate_key(from_currency: str, to_currency: str) -> str:

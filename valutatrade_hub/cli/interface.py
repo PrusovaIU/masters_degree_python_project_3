@@ -148,10 +148,10 @@ class Engine:
                     f"- {wallet.currency_code}: {wallet.balance:,.2f} "
                     f"-> {balance:,.2f} {base}"
                 )
-            portfolio: models.Portfolio = self._core.get_portfolio(
-                self._current_user.user_id
+            total_balance: float = self._core.get_total_balance(
+                self._current_user.user_id,
+                base
             )
-            total_balance: float = portfolio.get_total_value(base)
         except usercases.UnknownUserError:
             print(
                 f"Не найден портфель для пользователя "

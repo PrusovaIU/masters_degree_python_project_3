@@ -4,7 +4,7 @@ from typing import Optional
 import requests
 from valutatrade_hub.parser_service import models
 from valutatrade_hub.parser_service.config import ParserConfig
-from valutatrade_hub.parser_service.models.rate import RagesType, rate_key
+from valutatrade_hub.parser_service.models.rate import RatesType, rate_key
 from valutatrade_hub.parser_service.utils.lead_time import LeadTime
 from valutatrade_hub.parser_service.exception import ApiRequestError
 
@@ -103,7 +103,7 @@ class BaseApiClient(metaclass=ABCMeta):
     def _form_rages(
             self,
             exchange_rates: list[models.ExchangeRate]
-    ) -> RagesType:
+    ) -> RatesType:
         """
         Формирование словаря курсов валют.
 
@@ -120,7 +120,7 @@ class BaseApiClient(metaclass=ABCMeta):
             )
         return rates
 
-    def fetch_rates(self) -> RagesType:
+    def fetch_rates(self) -> RatesType:
         """
         Получение данных от API.
 

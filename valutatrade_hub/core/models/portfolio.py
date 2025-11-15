@@ -1,7 +1,7 @@
 from typing import Optional
 
 from .wallet import Wallet
-from valutatrade_hub.core.utils.currency_rates import get_exchange_rate, RatesType
+from valutatrade_hub.parser_service.models.storage import RateDictType
 from enum import Enum
 
 
@@ -47,9 +47,15 @@ class Portfolio:
         self._wallets[currency_code] = new_wallet
         return new_wallet
 
-    def get_total_value(self, base_currency="USD") -> float:
+    def get_total_value(
+            self,
+            rates: RateDictType,
+            base_currency="USD"
+    ) -> float:
         """
         Получить общую стоимость портфеля в указанной валюте.
+
+        :param rates: словарь с курсами валют вида {код валюты: курс}
 
         :param base_currency: код валюты, относительно которой будет посчитана
             стоимость портфеля.
@@ -61,7 +67,6 @@ class Portfolio:
 
         :raises ValueError: если не удалось получить курс для валюты.
         """
-        rates: RatesType = get_exchange_rate(base_currency)
         total_value = 0
         for wallet in self._wallets.values():
             total_value += wallet.convert(base_currency, rates)

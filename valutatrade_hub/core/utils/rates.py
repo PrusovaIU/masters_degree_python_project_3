@@ -16,7 +16,7 @@ def load_rates(file_path: Path) -> Storage:
     try:
         with open(file_path) as file:
             data = load(file)
-        return Storage(**data)
+        return Storage.load(data)
     except (OSError, JSONDecodeError) as e:
         raise CoreError(f"Ошибка при загрузке данных о курсах валют: "
                         f"{e} ({e.__class__.__name__})")

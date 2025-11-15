@@ -1,6 +1,6 @@
 from enum import Enum
 
-from .rate import RagesType, rate_key, Rate
+from .rate import RatesType, rate_key, Rate
 from typing import NamedTuple
 from datetime import datetime
 from ..exception import UnknownRateError
@@ -18,7 +18,7 @@ class Storage(NamedTuple):
     """
     Класс хранилища данных о курсах валют.
     """
-    pairs: RagesType
+    pairs: RatesType
     last_refresh: datetime
 
     def get_exchange_rate(self, currency: str) -> RateDictType:
@@ -50,6 +50,8 @@ class Storage(NamedTuple):
         :raises valutatrade_hub.parser_service.exception.UnknownRateError:
             если курс не найден.
         """
+        if from_currency == to_currency:
+            return 1
         rate = self._get_rate(from_currency, to_currency)
         if rate:
             return rate
@@ -72,6 +74,19 @@ class Storage(NamedTuple):
             return rate.rate
         except KeyError:
             return None
+
+    @classmethod
+    def load(cls, data: dict) -> "Storage":
+        pairs = {
+            key: Rate(**value)
+            for key, value in data[StorageJsonKey.pairs.value].items()
+        }
+        return cls(
+            pairs=pairs,
+            last_refresh=datetime.fromisoformat(
+                data[StorageJsonKey.last_refresh.value]
+            )
+        )
 
     def dump(self) -> dict:
         return {

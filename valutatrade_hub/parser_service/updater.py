@@ -3,7 +3,7 @@ from requests import Response
 from .config import ParserConfig
 from .api_clients.abc import (BaseApiClient, ClientApiRequestError,
                               ApiHTTPError)
-from .models.rate import RagesType
+from .models.rate import RatesType
 from .models import ExchangeRate
 from .models.storage import Storage
 from datetime import datetime
@@ -59,7 +59,7 @@ class RatesUpdater:
                 Ошибка при запросе к API.
         """
         last_refresh = datetime.now()
-        pairs: RagesType = self._storage.pairs.copy() if self._storage else {}
+        pairs: RatesType = self._storage.pairs.copy() if self._storage else {}
         exchanges: list[ExchangeRate] = []
         if source:
             clients = [
@@ -89,7 +89,7 @@ class RatesUpdater:
             "write_exchanges_file"
         )
 
-    def _client_fetch_rates(self, client: BaseApiClient) -> RagesType:
+    def _client_fetch_rates(self, client: BaseApiClient) -> RatesType:
         """
         Вызов метода fetch_rates у клиента.
 
@@ -98,7 +98,7 @@ class RatesUpdater:
         """
         action = "fetch_rates"
         try:
-            rates: RagesType = client.fetch_rates()
+            rates: RatesType = client.fetch_rates()
         except ApiHTTPError as e:
             response: Response = e.response
             self._logger.error(
@@ -145,41 +145,3 @@ class RatesUpdater:
                 )
             )
         return rates
-
-    def _get_rate_from_storage(self, key: str) -> float | None:
-        try:
-            rate: Rate = self._storage.pairs[key]
-            return rate.rate
-        except KeyError:
-            return None
-
-    def _get_rate(self, from_currency: str, to_currency: str) -> Rate | None:
-        """
-        Получение курса валюты из хранилища.
-
-        :param from_currency: код конвертируемой валюты.
-        :param to_currency: код валюты, в которую конвертируется.
-        :return: курс валюты, если он есть в хранилище, иначе None.
-        """
-        key: str = BaseApiClient.rate_key(from_currency, to_currency)
-        return self._storage.pairs.get(key)
-
-    def get_rate(self, from_currency: str, to_currency: str) -> float:
-        """
-        Получение курса валюты.
-
-        :param from_currency: код конвертируемой валюты.
-        :param to_currency: код валюты, в которую конвертируется.
-        :return: курс валюты.
-
-        :raises UnknownRateError: если курс не найден.
-        """
-        rate: Rate = self._get_rate(from_currency, to_currency)
-        if rate:
-            return rate.rate
-
-        rate = self._get_rate(to_currency, from_currency)
-        if rate:
-            return 1 / rate.rate
-
-        raise UnknownRateError(from_currency, to_currency)

@@ -1,5 +1,6 @@
 from enum import Enum
-from valutatrade_hub.core.utils.currency_rates import UnknownCurrencyError
+from valutatrade_hub.parser_service.exception import UnknownRateError
+from valutatrade_hub.parser_service.models.storage import RateDictType
 from valutatrade_hub.core.exceptions import InsufficientFundsError
 
 
@@ -73,7 +74,7 @@ class Wallet:
             "balance": self._balance
         }
 
-    def convert(self, base_currency: str, rates: dict[str, float]) -> float:
+    def convert(self, base_currency: str, rates: RateDictType) -> float:
         """
         Конвертация баланса по указанным курсам.
 
@@ -91,7 +92,7 @@ class Wallet:
         else:
             rate = rates.get(self.currency_code)
             if rate is None:
-                raise UnknownCurrencyError(self.currency_code)
+                raise UnknownRateError(self.currency_code, base_currency)
             return self.balance / rate
 
     @classmethod

@@ -1,14 +1,14 @@
 import secrets
+from functools import wraps
 from pathlib import Path
 
 from .models import User, Wallet, Portfolio, OperationInfo
 from .models.wallet import NegativeBalanceError
 from valutatrade_hub.infra.database import DatabaseManager, DataError
-from .utils import currency_rates as cr
 from .exceptions import CoreError
 from valutatrade_hub.core.exceptions import InsufficientFundsError
 from .decorators import log_action
-from valutatrade_hub.parser_service.models import Storage
+from valutatrade_hub.parser_service.models.storage import Storage, RateDictType
 from valutatrade_hub.parser_service.exception import ApiRequestError
 from valutatrade_hub.parser_service.updater import RatesUpdater
 from .utils.rates import load_rates
@@ -196,6 +196,21 @@ class Core:
         except IndexError:
             raise UnknownUserError(user_id)
 
+    def get_total_balance(self, user_id: int, base_currency: str) -> float:
+        """
+        Получение баланса портфеля пользователя.
+
+        :param user_id: ID пользователя.
+        :param base_currency: валюта, в которую будет конвертироваться баланс.
+        :return: баланс портфеля в указанной валюте.
+        """
+        portfolio: Portfolio = self.get_portfolio(user_id)
+        return portfolio.get_total_value(
+            self._rates.get_exchange_rate(base_currency),
+            base_currency
+        )
+
+
     def get_wallets_balances(
             self,
             user_id: int,
@@ -219,7 +234,7 @@ class Core:
             если не удалось получить курс валюты.
         """
         portfolio = self.get_portfolio(user_id)
-        rates: cr.RatesType = cr.get_exchange_rate(base_currency)
+        rates: RateDictType = self._rates.get_exchange_rate(base_currency)
         data = {}
         for wallet in portfolio.wallets.values():
             data[wallet] = wallet.convert(base_currency, rates)
@@ -304,11 +319,9 @@ class Core:
             wallet.balance += operation_info.amount
             self._db_manager.save_data(Portfolio, self._portfolios)
             operation_info.after_balance = wallet.balance
-            operation_info.rate = cr.get_rate(
+            operation_info.rate = self._rates.get_rate(
                 operation_info.base_currency, operation_info.currency_code
             )
-        except cr.CurrencyRatesError as e:
-            print(e)
         except SaveDataError as e:
             wallet.balance -= operation_info.amount
             raise e
