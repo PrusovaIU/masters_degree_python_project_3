@@ -34,8 +34,11 @@ class LoggingConfig(JsonSettingsLoader):
     rotation: Rotation = Parameter()
     #: уровень логирования:
     log_level: int = Parameter(default="INFO")
+    #: количество бэкапов:
     backup_count: int = Parameter(int, default=5)
+    #: кодировка:
     encoding: str = Parameter(default="utf-8")
+    #: формат логов:
     format: LogFormat = Parameter(LogFormat, default=LogFormat.json.value)
 
     def __init__(self, *args, **kwargs):

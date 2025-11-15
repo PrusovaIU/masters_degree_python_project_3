@@ -138,14 +138,72 @@ make project CONFIG=<путь до файла конфигурации> PS_CONFI
     </tr>
 </table>
 
-#### Конфигурация для ParserService
+#### Конфигурация для логгера
 
 Шаблон файла:
 
 ```json
 {
-  "log_file_name": "<название файла с логами>",
-  "logs_dir_path": "<путь до>"
+  "log_file_name": "",
+  "logs_dir_path": "",
+  "rotation": "",
+  "log_level": "",
+  "backup_count": 5,
+  "encoding": "",
+  "format": ""
 }
 ```
 
+<table>
+    <tr>
+        <th>Название параметра</th>
+        <th>Тип значений</th>
+        <th>Значение по умолчанию</th>
+        <th>Описание</th>
+    </tr>
+    <tr>
+        <td>log_file_name</td>
+        <td>str</td>
+        <td></td>
+        <td>Название файла с логами</td>
+    </tr>
+    <tr>
+        <td>logs_dir_path</td>
+        <td>str</td>
+        <td></td>
+        <td>путь до директории с логами</td>
+    </tr>
+    <tr>
+        <td>rotation</td>
+        <td>str</td>
+        <td></td>
+        <td>
+            ротация. Формат значения: "10 b", "10 kb", "10 mb", "10 gb", "10 tb",
+            "10 s", "10 m", "10 h", "10 d"
+        </td>
+    </tr>
+    <tr>
+        <td>log_level</td>
+        <td>str</td>
+        <td>INFO</td>
+        <td>уровень логов. Доступные значения: DEBUG, INFO, WARNING, ERROR, CRITICAL ERROR</td>
+    </tr>
+    <tr>
+        <td>backup_count</td>
+        <td>int</td>
+        <td>5</td>
+        <td>максимальное количество файлов с бэкапом</td>
+    </tr>
+    <tr>
+        <td>encoding</td>
+        <td>str</td>
+        <td>utf-8</td>
+        <td>кодирование</td>
+    </tr>
+    <tr>
+        <td>format</td>
+        <td>str</td>
+        <td>json</td>
+        <td>формат логов. Доступные значения: json, str</td>
+    </tr>
+</table>
