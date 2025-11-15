@@ -362,3 +362,9 @@ make project CONFIG=<путь до файла конфигурации> PS_CONFI
         </td>
     </tr>
 </table>
+
+## Демонстрация
+
+### Регистрация
+
+[![asciicast](https://asciinema.org/a/DuHf3xwJtHH7ITrhM1TLxS9hv.svg)](https://asciinema.org/a/DuHf3xwJtHH7ITrhM1TLxS9hv)
