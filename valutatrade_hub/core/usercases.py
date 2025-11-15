@@ -404,28 +404,9 @@ class Core:
                     self._rates.get_rate(currency, self._base_currency)
             }
         elif top:
-            rates = self._show_rates_top(top)
+            rates = self._rates.top(top)
         elif base:
             rates = self._rates.get_exchange_rate(base)
         else:
             raise ValueError("Не указаны параметры для вывода курсов валют")
         return rates, self._rates.last_refresh
-
-    def _show_rates_top(self, top: int) -> RateDictType:
-        rates = {}
-        for key, value in self._rates.pairs.items():
-            if 1 > value.rate > 0:
-                value = 1 / value.rate
-                fc, tc = parse_rate_key(key)
-                key = rate_key(tc, fc)
-            else:
-                value = value.rate
-            rates[key] = value
-        sorted_rates = sorted(
-            rates.items(),
-            key=lambda v: v[-1],
-            reverse=True
-        )
-        return {
-            key: value for key, value in sorted_rates[:top]
-        }
