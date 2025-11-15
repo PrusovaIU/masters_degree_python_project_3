@@ -138,6 +138,101 @@ make project CONFIG=<путь до файла конфигурации> PS_CONFI
     </tr>
 </table>
 
+#### Конфигурация для ParserService
+
+Шаблон файла:
+
+```json
+{
+  "coingecko_url": "",
+  "exchangerate_api_url": "",
+  "exchangerate_api_key": "",
+  "base_currency": "",
+  "fiat_currencies": ["<код валюты>", ...],
+  "crypto_currencies": {
+    "<название валюты>": "<код>"
+  },
+  "request_timeout": 10,
+  "max_history_len": 100,
+  "data_path": "data_path"
+}
+```
+
+<table>
+    <tr>
+        <th>Название параметра</th>
+        <th>Тип значений</th>
+        <th>Значение по умолчанию</th>
+        <th>Описание</th>
+    </tr>
+    <tr>
+        <td>coingecko_url</td>
+        <td>str</td>
+        <td>https://api.coingecko.com/api/v3/simple/price</td>
+        <td>URL сервиса CoinGecko</td>
+    </tr>
+    <tr>
+        <td>exchangerate_api_url</td>
+        <td>str</td>
+        <td>https://v6.exchangerate-api.com/v6</td>
+        <td>URL сервиса с</td>
+    </tr>
+    <tr>
+        <td>exchangerate_api_key</td>
+        <td>str</td>
+        <td></td>
+        <td>ключ для сервиса</td>
+    </tr>
+    <tr>
+        <td>base_currency</td>
+        <td>str</td>
+        <td>USD</td>
+        <td>код базовой валюты (в верхнем регистре)</td>
+    </tr>
+    <tr>
+        <td>fiat_currencies</td>
+        <td>list[str]</td>
+        <td>["EUR", "GBP", "RUB"]</td>
+        <td>список поддерживаемых фиат валют (в верхнем регистре)</td>
+    </tr>
+    <tr>
+        <td>crypto_currencies</td>
+        <td>dict</td>
+        <td>
+            {
+            "bitcoin": "BTC",
+            "ethereum": "ETH",
+            "solana": "SOL"
+            }
+        </td>
+        <td>список криптовалют</td>
+    </tr>
+    <tr>
+        <td>request_timeout</td>
+        <td>int</td>
+        <td>10</td>
+        <td>таймаут запросов к клиентам</td>
+    </tr>
+    <tr>
+        <td></td>
+        <td>str</td>
+        <td>json</td>
+        <td>формат логов. Доступные значения: json, str</td>
+    </tr>
+    <tr>
+        <td>max_history_len</td>
+        <td>int</td>
+        <td>100</td>
+        <td>максимальное количество записей в истории</td>
+    </tr>
+    <tr>
+        <td>data_path</td>
+        <td>str</td>
+        <td></td>
+        <td>путь до директории с данными</td>
+    </tr>
+</table>
+
 #### Конфигурация для логгера
 
 Шаблон файла:
