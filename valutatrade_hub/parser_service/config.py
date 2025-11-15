@@ -16,7 +16,10 @@ class ParserConfig(JsonSettingsLoader):
     )
     exchangerate_api_key: str = Parameter()
     base_currency: str = Parameter(default="USD")
-    fiat_currencies: tuple = Parameter(default=("EUR", "GBP", "RUB"))
+    fiat_currencies: tuple = Parameter(
+        ptype=tuple,
+        default=("EUR", "GBP", "RUB")
+    )
     crypto_currencies: dict = Parameter(
         ptype=dict,
         default={

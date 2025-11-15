@@ -76,9 +76,9 @@ class Core:
             self._portfolios: list[Portfolio] = self._db_manager.load_data(
                 Portfolio
             )
-            self._rates: Storage = self._db_manager.load_data(
-                Storage, rates_path
-            )
+            # self._rates: Storage = self._db_manager.load_data(
+            #     Storage, rates_path
+            # )
         except DataError as e:
             raise CoreError(str(e))
 
