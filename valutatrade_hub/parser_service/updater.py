@@ -1,10 +1,12 @@
 import inspect
+from pathlib import Path
 
 from requests import Response
 
 from .config import ParserConfig
 from .api_clients.abc import (BaseApiClient, RagesType, ApiRequestError,
                               ApiHTTPError)
+from .models import ExchangeRate
 from .models.storage import Storage
 from datetime import datetime
 from .log_record import HTTPLogRecord
@@ -13,6 +15,7 @@ from valutatrade_hub.logging_config.log_record import LogRecord
 import logging
 from traceback import extract_tb
 from .models import Rate
+from .utils.files import write_file
 
 
 class UnknownRateError(Exception):
@@ -56,6 +59,8 @@ class RatesUpdater:
         self._api_clients = api_clients
         self._storage: Storage | None = None
         self._config = config
+        self._rates_file_path = config.data_path / "rates.json"
+        self._exchanges_file_path = config.data_path / "exchanges_rates.json"
         self._logger: logging.Logger = logger.logger()
 
     @property
@@ -73,59 +78,82 @@ class RatesUpdater:
                 Ошибка при запросе к API.
         """
         last_refresh = datetime.now()
-        action = inspect.stack()[0].function
         pairs: RagesType = {}
+        exchanges: list[ExchangeRate] = []
         for client in self._api_clients:
-            try:
-                rates: RagesType = client.fetch_rates()
-                pairs.update(rates)
-            except ApiHTTPError as e:
-                response: Response = e.response
-                self._logger.error(
-                    HTTPLogRecord(
-                        action=action,
-                        result="error",
-                        error_type=e.__class__.__name__,
-                        error_message=str(e),
-                        url=response.url,
-                        response_status_code=response.status_code,
-                        response_text=response.text
-                    )
-                )
-            except ApiRequestError as e:
-                self._logger.error(
-                    HTTPLogRecord(
-                        action=action,
-                        result="error",
-                        error_type=e.error_type,
-                        error_message=e.error,
-                        message=str(e),
-                        url=e.url
-                    )
-                )
-            except Exception as e:
-                tb = extract_tb(e.__traceback__)
-                self._logger.error(
-                    LogRecord(
-                        action=action,
-                        result="error",
-                        error_type=e.__class__.__name__,
-                        error_message=str(e),
-                        message=str(tb)
-                    )
-                )
-            else:
-                self._logger.info(
-                    LogRecord(
-                        action=action,
-                        result="success",
-                        message=str(client.info)
-                    )
-                )
+            rates = self._client_fetch_rates(client)
+            pairs.update(rates)
+            exchanges.extend(client.history)
         self._storage = Storage(
             pairs=pairs,
             last_refresh=last_refresh
         )
+        write_file(
+            self._rates_file_path,
+            self._storage.dump(),
+            "write_rates_file"
+        )
+        write_file(
+            self._exchanges_file_path,
+            [record.dump() for record in exchanges],
+            "write_exchanges_file"
+        )
+
+    def _client_fetch_rates(self, client: BaseApiClient) -> RagesType:
+        """
+        Вызов метода fetch_rates у клиента.
+
+        :param client: клиент для получения данных о курсах валют.
+        :return: курсы валют.
+        """
+        action = "fetch_rates"
+        try:
+            rates: RagesType = client.fetch_rates()
+        except ApiHTTPError as e:
+            response: Response = e.response
+            self._logger.error(
+                HTTPLogRecord(
+                    action=action,
+                    result="error",
+                    error_type=e.__class__.__name__,
+                    error_message=str(e),
+                    url=response.url,
+                    response_status_code=response.status_code,
+                    response_text=response.text
+                )
+            )
+        except ApiRequestError as e:
+            self._logger.error(
+                HTTPLogRecord(
+                    action=action,
+                    result="error",
+                    error_type=e.error_type,
+                    error_message=e.error,
+                    message=str(e),
+                    url=e.url
+                )
+            )
+        except Exception as e:
+            tb = extract_tb(e.__traceback__)
+            self._logger.error(
+                LogRecord(
+                    action=action,
+                    result="error",
+                    error_type=e.__class__.__name__,
+                    error_message=str(e),
+                    message=str(tb)
+                )
+            )
+        else:
+            self._logger.info(
+                LogRecord(
+                    action=action,
+                    result="success",
+                    message=str(client.info)
+                )
+            )
+        return rates
+
 
     def _get_rate_from_storage(self, key: str) -> float | None:
         try:

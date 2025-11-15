@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from valutatrade_hub.infra import JsonSettingsLoader, Parameter
 
 
@@ -27,3 +29,4 @@ class ParserConfig(JsonSettingsLoader):
     history_file_path: str = Parameter(default="data/exchange_rates.json")
     request_timeout: int = Parameter(ptype=int, default=10)
     max_history_len: int = Parameter(ptype=int, default=100)
+    data_path: Path = Parameter(ptype=Path)

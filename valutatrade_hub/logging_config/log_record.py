@@ -15,7 +15,7 @@ class LogRecord:
     #: сообщение об ошибке, если произошла ошибка, иначе None:
     error_message: str | None = None
     #: дополнительные данные для лога
-    message: str | None = None
+    message: str| dict | None = None
 
     def __str__(self):
         if self.error_type:

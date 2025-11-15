@@ -57,6 +57,10 @@ class BaseApiClient(metaclass=ABCMeta):
         self._config = config
 
     @property
+    def history(self) -> list[models.ExchangeRate]:
+        return self._history
+
+    @property
     @abstractmethod
     def info(self) -> dict[str, str]:
         pass
