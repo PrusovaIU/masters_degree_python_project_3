@@ -278,8 +278,8 @@ class Engine:
 
 
     @CommandHandler(Commands.update_rates)
-    def update_rates(self, command_args: CommandArgsType) -> None:
-        source = command_args.get("source")
+    def update_rates(self, command_args: CommandArgsType = None) -> None:
+        source = command_args.get("source") if command_args else None
         self._core.update_rates(source)
 
     @staticmethod
