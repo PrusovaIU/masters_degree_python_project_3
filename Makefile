@@ -2,7 +2,7 @@ install:
     poetry install
 
 project:
-    poetry run project
+    poetry run project --config $(CONFIG_PATH) --ps-config $(PS_CONFIG) --logger-config $(LOGGER_CONFIG)
 
 build:
     poetry build

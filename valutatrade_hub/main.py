@@ -7,7 +7,34 @@ from valutatrade_hub.parser_service.updater import RatesUpdater
 from argparse import ArgumentParser
 
 
-def main(
+def main():
+    parser = ArgumentParser(description="ValutaTrade Hub")
+    parser.add_argument(
+        "--config",
+        type=str,
+        dest="config",
+        required=True,
+        help="Путь к файлу конфигурации"
+    )
+    parser.add_argument(
+        "--ps-config",
+        type=str,
+        dest="ps_config",
+        required=True,
+        help="Путь к файлу конфигурации парсера"
+    )
+    parser.add_argument(
+        "--logger-config",
+        type=str,
+        dest="logger_config",
+        required=True,
+        help="Путь к файлу конфигурации логгера"
+    )
+    args = parser.parse_args()
+    run(args.config, args.ps_config, args.logger_config)
+
+
+def run(
         config_path: str,
         ps_config_path: str,
         logger_config_path: str
@@ -36,27 +63,4 @@ def _init_parser_service(
 
 
 if __name__ == '__main__':
-    parser = ArgumentParser(description="ValutaTrade Hub")
-    parser.add_argument(
-        "--config",
-        type=str,
-        dest="config",
-        required=True,
-        help="Путь к файлу конфигурации"
-    )
-    parser.add_argument(
-        "--ps-config",
-        type=str,
-        dest="ps_config",
-        required=True,
-        help="Путь к файлу конфигурации парсера"
-    )
-    parser.add_argument(
-        "--logger-config",
-        type=str,
-        dest="logger_config",
-        required=True,
-        help="Путь к файлу конфигурации логгера"
-    )
-    args = parser.parse_args()
-    main(args.config, args.ps_config, args.logger_config)
+    main()
