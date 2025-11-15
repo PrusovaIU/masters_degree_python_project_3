@@ -1,18 +1,14 @@
 from abc import ABCMeta, abstractmethod
-from typing import Optional, Any
+from typing import Optional
 
 import requests
 from valutatrade_hub.parser_service import models
 from valutatrade_hub.parser_service.config import ParserConfig
 from valutatrade_hub.parser_service.utils.lead_time import LeadTime
+from valutatrade_hub.parser_service.exception import ApiRequestError
 
 
-
-class BaseApiClientError(Exception):
-    pass
-
-
-class ApiHTTPError(BaseApiClientError):
+class ApiHTTPError(ApiRequestError):
     def __init__(self, response: requests.Response):
         self._response = response
 
@@ -25,7 +21,7 @@ class ApiHTTPError(BaseApiClientError):
                 f"(status: {self._response.status_code})")
 
 
-class ApiRequestError(BaseApiClientError):
+class ClientApiRequestError(ApiRequestError):
     def __init__(self, url: str, error_type: str, error: str | Exception):
         self._url = url
         self._error_type = error_type
@@ -147,4 +143,4 @@ class BaseApiClient(metaclass=ABCMeta):
         except requests.HTTPError as e:
             raise ApiHTTPError(e.response)
         except requests.RequestException as e:
-            raise ApiRequestError(e.request.url, e.__class__.__name__, e)
+            raise ClientApiRequestError(e.request.url, e.__class__.__name__, e)

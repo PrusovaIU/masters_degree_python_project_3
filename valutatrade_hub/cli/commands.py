@@ -13,6 +13,7 @@ class Commands(Enum):
     sell = "sell"
     #: TODO: добавить обработчик команды после появления ParserService
     get_rate = "get-rate"
+    update_rates = "update-rates"
     exit = "exit"
 
 

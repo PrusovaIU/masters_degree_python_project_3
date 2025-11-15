@@ -9,6 +9,7 @@ from functools import wraps
 import re
 from enum import Enum
 from valutatrade_hub.config import Config
+from valutatrade_hub.parser_service.updater import RatesUpdater
 
 
 class EngineError(Exception):
@@ -38,11 +39,12 @@ def check_login(func: CommandHandlerType) -> Callable:
 
 
 class Engine:
-    def __init__(self, config: Config):
+    def __init__(self, config: Config, parser_service: RatesUpdater):
         self._core = usercases.Core(
             config.data_path,
             config.rates_file_path,
-            config.user_passwd_min_length
+            config.user_passwd_min_length,
+            parser_service
         )
         self._base_currency = config.base_currency
         self._current_user: Optional[models.User] = None
@@ -247,6 +249,11 @@ class Engine:
                 f"Оценочная стоимость: "
                 f"{evaluative_amount:,.2f} {self._base_currency}"
             )
+
+    @CommandHandler(Commands.update_rates)
+    def update_rates(self, command_args: CommandArgsType) -> None:
+        source = command_args.get("source")
+        self._core.update_rates(source)
 
     @staticmethod
     def _input() -> tuple[Commands, Optional[str]]:

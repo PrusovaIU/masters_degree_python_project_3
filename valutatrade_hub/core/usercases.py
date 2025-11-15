@@ -9,6 +9,8 @@ from .exceptions import CoreError
 from valutatrade_hub.core.exceptions import InsufficientFundsError
 from .decorators import log_action
 from valutatrade_hub.parser_service.models.storage import Storage
+from valutatrade_hub.parser_service.updater import RatesUpdater
+from valutatrade_hub.parser_service.exception import ApiRequestError
 
 
 class UserError(CoreError):
@@ -62,11 +64,13 @@ class Core:
             self,
             data_path: Path,
             rates_path: Path,
-            user_passwd_min_length: int
+            user_passwd_min_length: int,
+            rates_updater: RatesUpdater
     ):
         User.set_min_password_length(user_passwd_min_length)
         self._user_passwd_min_length = user_passwd_min_length
         self._db_manager = DatabaseManager(data_path)
+        self._parser_service = rates_updater
         try:
             self._users: list[User] = self._db_manager.load_data(User)
             self._portfolios: list[Portfolio] = self._db_manager.load_data(
@@ -314,3 +318,16 @@ class Core:
                 abs(operation_info.amount),
                 operation_info.currency_code
             )
+
+    def update_rates(self, source: str | None) -> None:
+        """
+        Обновление курсов валют.
+
+        :param source:
+        :return:
+        """
+        try:
+            self._parser_service.run_update(source)
+        except ApiRequestError as e:
+            raise CoreError(f"Ошибка обновления курсов: {e}")
+

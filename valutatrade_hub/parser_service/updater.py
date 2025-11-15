@@ -1,10 +1,7 @@
-import inspect
-from pathlib import Path
-
 from requests import Response
 
 from .config import ParserConfig
-from .api_clients.abc import (BaseApiClient, RagesType, ApiRequestError,
+from .api_clients.abc import (BaseApiClient, RagesType, ClientApiRequestError,
                               ApiHTTPError)
 from .models import ExchangeRate
 from .models.storage import Storage
@@ -16,9 +13,10 @@ import logging
 from traceback import extract_tb
 from .models import Rate
 from .utils.files import write_file
+from .exception import ApiRequestError
 
 
-class UnknownRateError(Exception):
+class UnknownRateError(ApiRequestError):
     def __init__(self, from_currency: str, to_currency: str):
         self._from_currency = from_currency
         self._to_currency = to_currency
@@ -78,7 +76,7 @@ class RatesUpdater:
                 Ошибка при запросе к API.
         """
         last_refresh = datetime.now()
-        pairs: RagesType = {}
+        pairs: RagesType = self._storage.pairs.copy() if self._storage else {}
         exchanges: list[ExchangeRate] = []
         if source:
             clients = [
@@ -131,7 +129,7 @@ class RatesUpdater:
                     response_text=response.text
                 )
             )
-        except ApiRequestError as e:
+        except ClientApiRequestError as e:
             self._logger.error(
                 HTTPLogRecord(
                     action=action,
@@ -142,6 +140,7 @@ class RatesUpdater:
                     url=e.url
                 )
             )
+            raise e
         except Exception as e:
             tb = extract_tb(e.__traceback__)
             self._logger.error(
@@ -153,6 +152,7 @@ class RatesUpdater:
                     message=str(tb)
                 )
             )
+            raise ApiRequestError(e)
         else:
             self._logger.info(
                 LogRecord(
