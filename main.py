@@ -21,4 +21,7 @@ if __name__ == '__main__':
     logger_config.load()
     updater = RatesUpdater(parser_config, logger_config, *clients)
     updater.run_update()
-    Engine(config, updater).run()
+    try:
+        Engine(config, updater).run()
+    except KeyboardInterrupt:
+        print("Завершение работы...")

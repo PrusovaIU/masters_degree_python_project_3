@@ -290,6 +290,12 @@ class Engine:
 
     @CommandHandler(Commands.show_rates)
     def show_rates(self, command_args: CommandArgsType) -> None:
+        """
+        Обработчик команды show_rates.
+
+        :param command_args: аргументы команды.
+        :return: None.
+        """
         currency = command_args.get("currency")
         top = command_args.get("top")
         base = command_args.get("base")
