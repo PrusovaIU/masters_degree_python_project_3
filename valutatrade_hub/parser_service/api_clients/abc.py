@@ -7,6 +7,8 @@ from valutatrade_hub.parser_service.config import ParserConfig
 from valutatrade_hub.parser_service.models.rate import RatesType, rate_key
 from valutatrade_hub.parser_service.utils.lead_time import LeadTime
 from valutatrade_hub.parser_service.exception import ApiRequestError
+from logging import getLogger
+from valutatrade_hub.parser_service.models import ApiClientInfo
 
 
 class ApiHTTPError(ApiRequestError):
@@ -49,6 +51,7 @@ class BaseApiClient(metaclass=ABCMeta):
     def __init__(self, config: ParserConfig):
         self._history: list[models.ExchangeRate] = []
         self._config = config
+        self._logger = getLogger()
 
     @property
     def history(self) -> list[models.ExchangeRate]:
@@ -56,7 +59,7 @@ class BaseApiClient(metaclass=ABCMeta):
 
     @property
     @abstractmethod
-    def info(self) -> dict[str, str]:
+    def info(self) -> ApiClientInfo:
         pass
 
     @abstractmethod
@@ -100,10 +103,8 @@ class BaseApiClient(metaclass=ABCMeta):
         response.raise_for_status()
         return response, lead_time.duration
 
-    def _form_rages(
-            self,
-            exchange_rates: list[models.ExchangeRate]
-    ) -> RatesType:
+    @staticmethod
+    def _form_rages(exchange_rates: list[models.ExchangeRate]) -> RatesType:
         """
         Формирование словаря курсов валют.
 

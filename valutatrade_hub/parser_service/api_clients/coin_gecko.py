@@ -2,7 +2,7 @@ from typing import Any
 
 import requests
 
-from .abc import BaseApiClient
+from .abc import BaseApiClient, ApiClientInfo
 from valutatrade_hub.parser_service import models
 from datetime import datetime
 
@@ -11,11 +11,11 @@ from http import HTTPStatus
 
 class CoinGeckoClient(BaseApiClient):
     @property
-    def info(self) -> dict[str, str]:
-        return {
-            "name": "CoinGecko",
-            "url": self._config.coingecko_url
-        }
+    def info(self) -> ApiClientInfo:
+        return ApiClientInfo(
+            name="CoinGecko",
+            url=self._config.coingecko_url
+        )
 
     def _call_api(self) -> list[models.ExchangeRate]:
         params = {
