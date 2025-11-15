@@ -75,3 +75,77 @@ poetry run project --config <путь до файла конфигурации> 
 ```bash
 make project CONFIG=<путь до файла конфигурации> PS_CONFIG=<путь до файла конфигурации PerserService> LOGGER_CONFIG=<путь до файла конфигурации логгера>
 ```
+
+### Файл конфигурации
+
+При запуске приложения необходимо передать пути до 3 файлов конфигурации
+
+* основная конфигурация;
+* конфигурация для ParserService;
+* конфигурация для логгера.
+    
+
+#### Основная конфигурация
+
+Шаблон файла:
+
+```json
+{
+  "data_path": "",
+  "base_currency": "",
+  "user_passwd_min_length": 4,
+  "rates_file_path": "",
+  "rates_update_interval": 5
+}
+```
+
+<table>
+    <tr>
+        <th>Название параметра</th>
+        <th>Тип значений</th>
+        <th>Значение по умолчанию</th>
+        <th>Описание</th>
+    </tr>
+    <tr>
+        <td>data_path</td>
+        <td>str</td>
+        <td></td>
+        <td>Путь до директории с файлами данных</td>
+    </tr>
+    <tr>
+        <td>base_currency</td>
+        <td>str</td>
+        <td>USD</td>
+        <td>код базовой валюты (в верхнем регистре)</td>
+    </tr>
+    <tr>
+        <td>user_passwd_min_length</td>
+        <td>int</td>
+        <td>4</td>
+        <td>минимальная длинна пароля пользователя</td>
+    </tr>
+    <tr>
+        <td>rates_file_path</td>
+        <td>str</td>
+        <td></td>
+        <td>путь до файла с курсами валют</td>
+    </tr>
+    <tr>
+        <td>rates_update_interval</td>
+        <td>int</td>
+        <td>5</td>
+        <td>интервал обновления курсов в минутах</td>
+    </tr>
+</table>
+
+#### Конфигурация для ParserService
+
+Шаблон файла:
+
+```json
+{
+  "log_file_name": "<название файла с логами>",
+  "logs_dir_path": "<путь до>"
+}
+```
+
