@@ -6,7 +6,8 @@ from valutatrade_hub.core.exceptions import CurrencyNotFoundError
 __all__ = [
     "FiatCurrency",
     "CryptoCurrency",
-    "get_currency"
+    "get_currency",
+    "Currency"
 ]
 
 # Реестр валют: код -> экземпляр Currency

@@ -57,12 +57,12 @@ class DatabaseManager:
         """
         return self._dir_path / f"{obj.__name__.lower()}.json"
 
-
     def read_file(self, obj: type) -> list:
         """
         Загрузка данных из файла.
 
         :param obj: класс объектов, список которых нужно загрузить.
+
         :return: список объектов.
         """
         path = self._form_path(obj)
@@ -93,11 +93,12 @@ class DatabaseManager:
         except OSError as e:
             raise SaveDataError(path, obj, e)
 
-    def load_data(self, obj: Type[LC]) -> list[LC]:
+    def load_data(self,obj: Type[LC]) -> list[LC]:
         """
         Загрузка данных из файла.
 
         :param obj: класс объекта.
+
         :return: список объектов.
 
         :raises LoadDataError: если не удалось загрузить данные.

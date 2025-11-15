@@ -11,8 +11,8 @@ class Commands(Enum):
     show_portfolio = "show-portfolio"
     buy = "buy"
     sell = "sell"
-    #: TODO: добавить обработчик команды после появления ParserService
     get_rate = "get-rate"
+    update_rates = "update-rates"
     exit = "exit"
 
 

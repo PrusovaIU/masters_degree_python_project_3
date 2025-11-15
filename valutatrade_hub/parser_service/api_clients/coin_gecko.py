@@ -1,3 +1,5 @@
+from typing import Any
+
 import requests
 
 from .abc import BaseApiClient
@@ -8,9 +10,16 @@ from http import HTTPStatus
 
 
 class CoinGeckoClient(BaseApiClient):
+    @property
+    def info(self) -> dict[str, str]:
+        return {
+            "name": "CoinGecko",
+            "url": self._config.coingecko_url
+        }
+
     def _call_api(self) -> list[models.ExchangeRate]:
         params = {
-            "ids": ",".join((self._config.crypto_currencies.values())),
+            "ids": ",".join((self._config.crypto_currencies.keys())),
             "vs_currencies": self._config.base_currency
         }
         response, lead_time = self._request(
@@ -34,7 +43,7 @@ class CoinGeckoClient(BaseApiClient):
         now = datetime.now()
         rates = []
         for currency, data in response.json().items():
-            rate_value: float = 1 / data[self._config.base_currency]
+            rate_value: float = 1 / data[self._config.base_currency.lower()]
             rate = models.ExchangeRate(
                 from_currency=self._config.base_currency,
                 to_currency=self._config.crypto_currencies[currency],

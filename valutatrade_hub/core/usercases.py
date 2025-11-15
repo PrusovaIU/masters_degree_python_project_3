@@ -4,10 +4,14 @@ from pathlib import Path
 from .models import User, Wallet, Portfolio, OperationInfo
 from .models.wallet import NegativeBalanceError
 from valutatrade_hub.infra.database import DatabaseManager, DataError
-from .utils import currency_rates as cr
 from .exceptions import CoreError
 from valutatrade_hub.core.exceptions import InsufficientFundsError
 from .decorators import log_action
+from valutatrade_hub.parser_service.models.storage import Storage, RateDictType
+from valutatrade_hub.parser_service.exception import ApiRequestError
+from valutatrade_hub.parser_service.updater import RatesUpdater
+from .utils.rates import load_rates
+from datetime import timedelta, datetime
 
 
 class UserError(CoreError):
@@ -57,14 +61,30 @@ class SaveDataError(CoreError):
 
 
 class Core:
+    """
+    Ядро приложения.
+
+    :param data_path: путь к файлу с данными.
+    :param rates_path: путь к файлу с курсами валют.
+    :param user_passwd_min_length: минимальная длина пароля пользователя.
+    :param rates_updater: сервис обновления курсов валют.
+    :param rates_update_interval: интервал обновления курсов валют (в минутах).
+    """
     def __init__(
             self,
             data_path: Path,
-            user_passwd_min_length: int
+            rates_path: Path,
+            user_passwd_min_length: int,
+            rates_updater: RatesUpdater,
+            rates_update_interval: int
     ):
         User.set_min_password_length(user_passwd_min_length)
         self._user_passwd_min_length = user_passwd_min_length
         self._db_manager = DatabaseManager(data_path)
+        self._parser_service = rates_updater
+        self._rates_path = rates_path
+        self._rates: Storage = load_rates(rates_path)
+        self._rates_update_interval = timedelta(minutes=rates_update_interval)
         try:
             self._users: list[User] = self._db_manager.load_data(User)
             self._portfolios: list[Portfolio] = self._db_manager.load_data(
@@ -187,6 +207,20 @@ class Core:
         except IndexError:
             raise UnknownUserError(user_id)
 
+    def get_total_balance(self, user_id: int, base_currency: str) -> float:
+        """
+        Получение баланса портфеля пользователя.
+
+        :param user_id: ID пользователя.
+        :param base_currency: валюта, в которую будет конвертироваться баланс.
+        :return: баланс портфеля в указанной валюте.
+        """
+        portfolio: Portfolio = self.get_portfolio(user_id)
+        return portfolio.get_total_value(
+            self._rates.get_exchange_rate(base_currency),
+            base_currency
+        )
+
     def get_wallets_balances(
             self,
             user_id: int,
@@ -210,7 +244,7 @@ class Core:
             если не удалось получить курс валюты.
         """
         portfolio = self.get_portfolio(user_id)
-        rates: cr.RatesType = cr.get_exchange_rate(base_currency)
+        rates: RateDictType = self._rates.get_exchange_rate(base_currency)
         data = {}
         for wallet in portfolio.wallets.values():
             data[wallet] = wallet.convert(base_currency, rates)
@@ -295,11 +329,9 @@ class Core:
             wallet.balance += operation_info.amount
             self._db_manager.save_data(Portfolio, self._portfolios)
             operation_info.after_balance = wallet.balance
-            operation_info.rate = cr.get_rate(
+            operation_info.rate = self._rates.get_rate(
                 operation_info.base_currency, operation_info.currency_code
             )
-        except cr.CurrencyRatesError as e:
-            print(e)
         except SaveDataError as e:
             wallet.balance -= operation_info.amount
             raise e
@@ -309,3 +341,38 @@ class Core:
                 abs(operation_info.amount),
                 operation_info.currency_code
             )
+
+    def get_rate(
+            self,
+            from_currency: str,
+            to_currency: str
+    ) -> tuple[float, datetime]:
+        """
+        Получение курса валюты.
+
+        :param from_currency: код конвертируемой валюты.
+        :param to_currency: код валюты, в которую будет конвертироваться.
+        :return: курс валюты, дата и время обновления курса.
+
+        :raises valutatrade_hub.parser_service.exception.ApiRequestError:
+            если не удалось получить курс валюты.
+        """
+        last_refresh = datetime.now() - self._rates.last_refresh
+        if last_refresh >= self._rates_update_interval:
+            self._parser_service.run_update()
+            self._rates = load_rates(self._rates_path)
+        rate = self._rates.get_rate(from_currency, to_currency)
+        return rate, self._rates.last_refresh
+
+    def update_rates(self, source: str | None) -> None:
+        """
+        Обновление курсов валют.
+
+        :param source:
+        :return:
+        """
+        try:
+            self._parser_service.run_update(source)
+        except ApiRequestError as e:
+            raise CoreError(f"Ошибка обновления курсов: {e}")
+

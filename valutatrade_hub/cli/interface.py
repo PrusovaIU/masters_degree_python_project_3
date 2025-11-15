@@ -7,8 +7,11 @@ from .commands import (Commands, CommandHandler, CommandArgsType,
 from valutatrade_hub.core import models
 from functools import wraps
 import re
-from enum import Enum
 from valutatrade_hub.config import Config
+from valutatrade_hub.parser_service.updater import RatesUpdater
+from valutatrade_hub.core.models.operation_info import BalanceOperationType
+from valutatrade_hub.parser_service.exception import ApiRequestError
+from valutatrade_hub.core.exceptions import CoreError
 
 
 class EngineError(Exception):
@@ -17,11 +20,6 @@ class EngineError(Exception):
 
 class UnknownCommandError(EngineError):
     pass
-
-
-class BalanceOperationType(Enum):
-    buy = "покупка"
-    sell = "продажа"
 
 
 def check_login(func: CommandHandlerType) -> Callable:
@@ -38,10 +36,19 @@ def check_login(func: CommandHandlerType) -> Callable:
 
 
 class Engine:
-    def __init__(self, config: Config):
+    """
+    Класс, реализующий интерфейс взаимодействия с пользователем.
+
+    :param config: конфигурация приложения.
+    :param parser_service: сервис парсинга курсов валют.
+    """
+    def __init__(self, config: Config, parser_service: RatesUpdater):
         self._core = usercases.Core(
             config.data_path,
-            config.user_passwd_min_length
+            config.rates_file_path,
+            config.user_passwd_min_length,
+            parser_service,
+            config.rates_update_interval
         )
         self._base_currency = config.base_currency
         self._current_user: Optional[models.User] = None
@@ -145,10 +152,10 @@ class Engine:
                     f"- {wallet.currency_code}: {wallet.balance:,.2f} "
                     f"-> {balance:,.2f} {base}"
                 )
-            portfolio: models.Portfolio = self._core.get_portfolio(
-                self._current_user.user_id
+            total_balance: float = self._core.get_total_balance(
+                self._current_user.user_id,
+                base
             )
-            total_balance: float = portfolio.get_total_value(base)
         except usercases.UnknownUserError:
             print(
                 f"Не найден портфель для пользователя "
@@ -208,25 +215,26 @@ class Engine:
         try:
             currency: str = command_args["currency"].upper()
             amount: float = float(command_args["amount"])
-            if operation_type == BalanceOperationType.sell:
-                amount = -amount
-                create_wallet = False
-            else:
-                create_wallet = True
+            if amount <= 0:
+                raise ValueError(
+                    "Значение параметра \"amount\" должно быть больше нуля"
+                )
+            create_wallet = False \
+                if operation_type == BalanceOperationType.sell \
+                else True
             info = models.OperationInfo(
                 username=self._current_user.username,
                 user_id=self._current_user.user_id,
                 amount=amount,
                 currency_code=currency,
                 base_currency=self._base_currency,
-                operation_type=operation_type.value
+                operation_type=operation_type
             )
             self._core.balance_operation(
                 self._current_user.user_id, info, create_wallet
             )
         except KeyError as e:
             print(f"Не передан обязательный параметр: {e}")
-
         else:
             amount = abs(info.amount)
             if info.rate:
@@ -246,6 +254,33 @@ class Engine:
                 f"Оценочная стоимость: "
                 f"{evaluative_amount:,.2f} {self._base_currency}"
             )
+
+    @CommandHandler(Commands.get_rate)
+    def get_rate(self, command_args: CommandArgsType) -> None:
+        """
+        Обработчик команды get_rate.
+
+        :param command_args: аргументы команды.
+        :return: None.
+        """
+        try:
+            from_currency: str = command_args["from"].upper()
+            to_currency: str = command_args["to"].upper()
+        except KeyError as e:
+            print(f"Не передан обязательный параметр: {e}")
+        else:
+            rate, last_update = self._core.get_rate(from_currency, to_currency)
+            print(
+                f"Курс {from_currency} -> {to_currency}: {rate} "
+                f"(обновлено: {last_update.strftime('%Y-%m-%d %H:%M:%S')})\n"
+                f"Обратный курс: {1 / rate}"
+            )
+
+
+    @CommandHandler(Commands.update_rates)
+    def update_rates(self, command_args: CommandArgsType) -> None:
+        source = command_args.get("source")
+        self._core.update_rates(source)
 
     @staticmethod
     def _input() -> tuple[Commands, Optional[str]]:
@@ -277,6 +312,6 @@ class Engine:
                 CommandHandler.handle(command, args, self)
             except UnknownCommandError as e:
                 print(f"Неизвестная команда: \"{e}\"")
-            except (ValueError, usercases.CoreError) as e:
+            except (ValueError, CoreError, ApiRequestError) as e:
                 print(e)
         print("Завершение работы...")
