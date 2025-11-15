@@ -1,17 +1,17 @@
 install:
-    poetry install
+	poetry install
 
 project:
-    poetry run project --config $(CONFIG_PATH) --ps-config $(PS_CONFIG) --logger-config $(LOGGER_CONFIG)
+	poetry run project --config $(CONFIG) --ps-config $(PS_CONFIG) --logger-config $(LOGGER_CONFIG)
 
 build:
-    poetry build
+	poetry build
 
 publish:
-    poetry publish --dry-run
+	poetry publish --dry-run
 
 package-install:
-    python3 -m pip install dist/*.whl
+	python3 -m pip install dist/*.whl
 
 lint:
-    poetry run ruff check .
+	poetry run ruff check .

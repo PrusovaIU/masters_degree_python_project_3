@@ -61,3 +61,17 @@ poetry install
 ```bash
 make install
 ```
+
+### Запуск
+
+Для запуска используйте команду:
+
+```bash
+poetry run project --config <путь до файла конфигурации> --ps-config <путь до файла конфигурации PerserService> --loger-config <путь до файла конфигурации логгера>
+```
+
+или Makefile:
+
+```bash
+make project CONFIG=<путь до файла конфигурации> PS_CONFIG=<путь до файла конфигурации PerserService> LOGGER_CONFIG=<путь до файла конфигурации логгера>
+```
