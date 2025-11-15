@@ -9,7 +9,9 @@ from functools import wraps
 import re
 from valutatrade_hub.config import Config
 from valutatrade_hub.parser_service.updater import RatesUpdater
-from ..core.models.operation_info import BalanceOperationType
+from valutatrade_hub.core.models.operation_info import BalanceOperationType
+from valutatrade_hub.parser_service.exception import ApiRequestError
+from valutatrade_hub.core.exceptions import CoreError
 
 
 class EngineError(Exception):
@@ -34,6 +36,12 @@ def check_login(func: CommandHandlerType) -> Callable:
 
 
 class Engine:
+    """
+    Класс, реализующий интерфейс взаимодействия с пользователем.
+
+    :param config: конфигурация приложения.
+    :param parser_service: сервис парсинга курсов валют.
+    """
     def __init__(self, config: Config, parser_service: RatesUpdater):
         self._core = usercases.Core(
             config.data_path,
@@ -304,6 +312,6 @@ class Engine:
                 CommandHandler.handle(command, args, self)
             except UnknownCommandError as e:
                 print(f"Неизвестная команда: \"{e}\"")
-            except (ValueError, usercases.CoreError) as e:
+            except (ValueError, CoreError, ApiRequestError) as e:
                 print(e)
         print("Завершение работы...")

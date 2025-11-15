@@ -61,6 +61,15 @@ class SaveDataError(CoreError):
 
 
 class Core:
+    """
+    Ядро приложения.
+
+    :param data_path: путь к файлу с данными.
+    :param rates_path: путь к файлу с курсами валют.
+    :param user_passwd_min_length: минимальная длина пароля пользователя.
+    :param rates_updater: сервис обновления курсов валют.
+    :param rates_update_interval: интервал обновления курсов валют (в минутах).
+    """
     def __init__(
             self,
             data_path: Path,
