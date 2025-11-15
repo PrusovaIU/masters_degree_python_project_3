@@ -6,3 +6,4 @@ class Config(JsonSettingsLoader, metaclass=SingletonMeta):
     data_path = Parameter(Path)
     base_currency = Parameter()
     user_passwd_min_length = Parameter(int, default=4)
+    rates_file_path = Parameter(Path)

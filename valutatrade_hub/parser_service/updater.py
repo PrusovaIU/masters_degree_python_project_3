@@ -67,7 +67,7 @@ class RatesUpdater:
     def storage(self) -> Storage:
         return self._storage
 
-    def run_update(self):
+    def run_update(self, source: str | None = None):
         """
         Обновление данных.
 
@@ -80,7 +80,16 @@ class RatesUpdater:
         last_refresh = datetime.now()
         pairs: RagesType = {}
         exchanges: list[ExchangeRate] = []
-        for client in self._api_clients:
+        if source:
+            clients = [
+                client for client in self._api_clients
+                if client.__class__.__name__ == source
+            ]
+            if not clients:
+                raise ValueError(f"Не найден клиент с именем {source}")
+        else:
+            clients = self._api_clients
+        for client in clients:
             rates = self._client_fetch_rates(client)
             pairs.update(rates)
             exchanges.extend(client.history)
@@ -153,7 +162,6 @@ class RatesUpdater:
                 )
             )
         return rates
-
 
     def _get_rate_from_storage(self, key: str) -> float | None:
         try:

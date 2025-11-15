@@ -8,6 +8,7 @@ from .utils import currency_rates as cr
 from .exceptions import CoreError
 from valutatrade_hub.core.exceptions import InsufficientFundsError
 from .decorators import log_action
+from valutatrade_hub.parser_service.models.storage import Storage
 
 
 class UserError(CoreError):
@@ -60,6 +61,7 @@ class Core:
     def __init__(
             self,
             data_path: Path,
+            rates_path: Path,
             user_passwd_min_length: int
     ):
         User.set_min_password_length(user_passwd_min_length)
@@ -69,6 +71,9 @@ class Core:
             self._users: list[User] = self._db_manager.load_data(User)
             self._portfolios: list[Portfolio] = self._db_manager.load_data(
                 Portfolio
+            )
+            self._rates: Storage = self._db_manager.load_data(
+                Storage, rates_path
             )
         except DataError as e:
             raise CoreError(str(e))

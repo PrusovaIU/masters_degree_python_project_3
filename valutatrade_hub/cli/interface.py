@@ -41,6 +41,7 @@ class Engine:
     def __init__(self, config: Config):
         self._core = usercases.Core(
             config.data_path,
+            config.rates_file_path,
             config.user_passwd_min_length
         )
         self._base_currency = config.base_currency
