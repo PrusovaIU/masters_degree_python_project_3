@@ -1,6 +1,6 @@
 from enum import Enum
 
-from .rate import RatesType, rate_key, Rate
+from .rate import RatesType, rate_key, Rate, parse_rate_key
 from typing import NamedTuple
 from datetime import datetime
 from ..exception import UnknownRateError
@@ -32,7 +32,7 @@ class Storage(NamedTuple):
         """
         rates: RateDictType = {}
         for key, value in self.pairs.items():
-            fc, tc = key.split("_")
+            fc, tc = parse_rate_key(key)
             if currency == fc:
                 rates[tc] = value.rate
             elif currency == tc:

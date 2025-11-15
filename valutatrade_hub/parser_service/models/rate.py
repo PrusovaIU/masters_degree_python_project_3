@@ -30,4 +30,22 @@ RatesType = dict[str, Rate]  # {from_currency_to_currency: Rate}
 
 
 def rate_key(from_currency: str, to_currency: str) -> str:
+    """
+    Формирование ключа для хранения курса валюты.
+
+    :param from_currency: конвертируемая валюта.
+    :param to_currency: валюта, в которую производится конвертация.
+    :return: ключ для хранения курса валюты.
+    """
     return f"{from_currency}_{to_currency}"
+
+
+def parse_rate_key(key: str) -> tuple[str, str]:
+    """
+    Парсинг ключа для хранения курса валюты.
+
+    :param key: ключ.
+    :return: конвертируемая и валюта, в которую производится конвертация.
+    """
+    fc, tc = key.split("_")
+    return fc, tc

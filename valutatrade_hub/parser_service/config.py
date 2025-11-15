@@ -8,6 +8,7 @@ class ConfigError(Exception):
 
 
 class ParserConfig(JsonSettingsLoader):
+    #: API URL
     coingecko_url: str = Parameter(
         default="https://api.coingecko.com/api/v3/simple/price"
     )
@@ -15,7 +16,9 @@ class ParserConfig(JsonSettingsLoader):
         default="https://v6.exchangerate-api.com/v6"
     )
     exchangerate_api_key: str = Parameter()
+    #: базовая валюта
     base_currency: str = Parameter(default="USD")
+    #: валюты, которые будут использоваться:
     fiat_currencies: tuple = Parameter(
         ptype=tuple,
         default=("EUR", "GBP", "RUB")
@@ -28,8 +31,9 @@ class ParserConfig(JsonSettingsLoader):
             "solana": "SOL"
         }
     )
-    rates_file_path: str = Parameter(default="data/rates.json")
-    history_file_path: str = Parameter(default="data/exchange_rates.json")
+    #: таймаут запроса
     request_timeout: int = Parameter(ptype=int, default=10)
+    #: максимальное количество записей в истории
     max_history_len: int = Parameter(ptype=int, default=100)
     data_path: Path = Parameter(ptype=Path)
+

@@ -1,5 +1,4 @@
 import secrets
-from functools import wraps
 from pathlib import Path
 
 from .models import User, Wallet, Portfolio, OperationInfo
@@ -12,7 +11,7 @@ from valutatrade_hub.parser_service.models.storage import Storage, RateDictType
 from valutatrade_hub.parser_service.exception import ApiRequestError
 from valutatrade_hub.parser_service.updater import RatesUpdater
 from .utils.rates import load_rates
-
+from datetime import timedelta, datetime
 
 
 class UserError(CoreError):
@@ -67,13 +66,16 @@ class Core:
             data_path: Path,
             rates_path: Path,
             user_passwd_min_length: int,
-            rates_updater: RatesUpdater
+            rates_updater: RatesUpdater,
+            rates_update_interval: int
     ):
         User.set_min_password_length(user_passwd_min_length)
         self._user_passwd_min_length = user_passwd_min_length
         self._db_manager = DatabaseManager(data_path)
         self._parser_service = rates_updater
+        self._rates_path = rates_path
         self._rates: Storage = load_rates(rates_path)
+        self._rates_update_interval = timedelta(minutes=rates_update_interval)
         try:
             self._users: list[User] = self._db_manager.load_data(User)
             self._portfolios: list[Portfolio] = self._db_manager.load_data(
@@ -210,7 +212,6 @@ class Core:
             base_currency
         )
 
-
     def get_wallets_balances(
             self,
             user_id: int,
@@ -331,6 +332,28 @@ class Core:
                 abs(operation_info.amount),
                 operation_info.currency_code
             )
+
+    def get_rate(
+            self,
+            from_currency: str,
+            to_currency: str
+    ) -> tuple[float, datetime]:
+        """
+        Получение курса валюты.
+
+        :param from_currency: код конвертируемой валюты.
+        :param to_currency: код валюты, в которую будет конвертироваться.
+        :return: курс валюты, дата и время обновления курса.
+
+        :raises valutatrade_hub.parser_service.exception.ApiRequestError:
+            если не удалось получить курс валюты.
+        """
+        last_refresh = datetime.now() - self._rates.last_refresh
+        if last_refresh >= self._rates_update_interval:
+            self._parser_service.run_update()
+            self._rates = load_rates(self._rates_path)
+        rate = self._rates.get_rate(from_currency, to_currency)
+        return rate, self._rates.last_refresh
 
     def update_rates(self, source: str | None) -> None:
         """

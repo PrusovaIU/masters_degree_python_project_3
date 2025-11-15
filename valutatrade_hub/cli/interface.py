@@ -39,7 +39,8 @@ class Engine:
             config.data_path,
             config.rates_file_path,
             config.user_passwd_min_length,
-            parser_service
+            parser_service,
+            config.rates_update_interval
         )
         self._base_currency = config.base_currency
         self._current_user: Optional[models.User] = None
@@ -226,7 +227,6 @@ class Engine:
             )
         except KeyError as e:
             print(f"Не передан обязательный параметр: {e}")
-
         else:
             amount = abs(info.amount)
             if info.rate:
@@ -246,6 +246,28 @@ class Engine:
                 f"Оценочная стоимость: "
                 f"{evaluative_amount:,.2f} {self._base_currency}"
             )
+
+    @CommandHandler(Commands.get_rate)
+    def get_rate(self, command_args: CommandArgsType) -> None:
+        """
+        Обработчик команды get_rate.
+
+        :param command_args: аргументы команды.
+        :return: None.
+        """
+        try:
+            from_currency: str = command_args["from"].upper()
+            to_currency: str = command_args["to"].upper()
+        except KeyError as e:
+            print(f"Не передан обязательный параметр: {e}")
+        else:
+            rate, last_update = self._core.get_rate(from_currency, to_currency)
+            print(
+                f"Курс {from_currency} -> {to_currency}: {rate} "
+                f"(обновлено: {last_update.strftime('%Y-%m-%d %H:%M:%S')})\n"
+                f"Обратный курс: {1 / rate}"
+            )
+
 
     @CommandHandler(Commands.update_rates)
     def update_rates(self, command_args: CommandArgsType) -> None:
