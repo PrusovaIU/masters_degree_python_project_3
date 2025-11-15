@@ -8,9 +8,11 @@ from .utils import currency_rates as cr
 from .exceptions import CoreError
 from valutatrade_hub.core.exceptions import InsufficientFundsError
 from .decorators import log_action
-from valutatrade_hub.parser_service.models.storage import Storage
-from valutatrade_hub.parser_service.updater import RatesUpdater
+from valutatrade_hub.parser_service.models import Storage
 from valutatrade_hub.parser_service.exception import ApiRequestError
+from valutatrade_hub.parser_service.updater import RatesUpdater
+from .utils.rates import load_rates
+
 
 
 class UserError(CoreError):
@@ -71,14 +73,12 @@ class Core:
         self._user_passwd_min_length = user_passwd_min_length
         self._db_manager = DatabaseManager(data_path)
         self._parser_service = rates_updater
+        self._rates: Storage = load_rates(rates_path)
         try:
             self._users: list[User] = self._db_manager.load_data(User)
             self._portfolios: list[Portfolio] = self._db_manager.load_data(
                 Portfolio
             )
-            # self._rates: Storage = self._db_manager.load_data(
-            #     Storage, rates_path
-            # )
         except DataError as e:
             raise CoreError(str(e))
 

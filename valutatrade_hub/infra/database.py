@@ -57,19 +57,15 @@ class DatabaseManager:
         """
         return self._dir_path / f"{obj.__name__.lower()}.json"
 
-    def read_file(self, obj: type, file_path: Path | None = None) -> list:
+    def read_file(self, obj: type) -> list:
         """
         Загрузка данных из файла.
 
         :param obj: класс объектов, список которых нужно загрузить.
 
-        :param file_path: путь к файлу, из которого нужно загрузить данные.
-            Если не указан, то данные будут загружены из файла с названием
-            вида "{obj.__name__.lower()}.json".
-
         :return: список объектов.
         """
-        path = file_path if file_path else self._form_path(obj)
+        path = self._form_path(obj)
         data = []
         try:
             if not path.exists():
@@ -97,26 +93,18 @@ class DatabaseManager:
         except OSError as e:
             raise SaveDataError(path, obj, e)
 
-    def load_data(
-            self,
-            obj: Type[LC],
-            file_path: Path | None = None
-    ) -> list[LC]:
+    def load_data(self,obj: Type[LC]) -> list[LC]:
         """
         Загрузка данных из файла.
 
         :param obj: класс объекта.
-
-        :param file_path: путь к файлу, из которого нужно загрузить данные.
-            Если не указан, то данные будут загружены из файла с названием
-            вида "{obj.__name__.lower()}.json".
 
         :return: список объектов.
 
         :raises LoadDataError: если не удалось загрузить данные.
         """
         try:
-            data: list[dict] = self.read_file(obj, file_path)
+            data: list[dict] = self.read_file(obj)
             objs: list[LC] = []
             for i, item in enumerate(data):
                 objs.append(obj.load(item))

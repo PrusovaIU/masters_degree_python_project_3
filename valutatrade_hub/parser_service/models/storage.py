@@ -17,6 +17,15 @@ class Storage(NamedTuple):
     pairs: RagesType
     last_refresh: datetime
 
+    # @classmethod
+    # def load(cls, data: dict) -> "Storage":
+    #     return cls(
+    #         pairs=data[StorageJsonKey.pairs.value],
+    #         last_refresh=datetime.fromisoformat(
+    #             data[StorageJsonKey.last_refresh.value]
+    #         )
+    #     )
+
     def dump(self) -> dict:
         return {
             StorageJsonKey.pairs.value: {
