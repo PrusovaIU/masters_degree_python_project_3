@@ -48,7 +48,8 @@ class Engine:
             config.rates_file_path,
             config.user_passwd_min_length,
             parser_service,
-            config.rates_update_interval
+            config.rates_update_interval,
+            config.base_currency
         )
         self._base_currency = config.base_currency
         self._current_user: Optional[models.User] = None
@@ -276,11 +277,42 @@ class Engine:
                 f"Обратный курс: {1 / rate}"
             )
 
-
     @CommandHandler(Commands.update_rates)
     def update_rates(self, command_args: CommandArgsType = None) -> None:
+        """
+        Обработчик команды update_rates.
+
+        :param command_args: аргументы команды.
+        :return: None.
+        """
         source = command_args.get("source") if command_args else None
         self._core.update_rates(source)
+
+    @CommandHandler(Commands.show_rates)
+    def show_rates(self, command_args: CommandArgsType) -> None:
+        currency = command_args.get("currency")
+        top = command_args.get("top")
+        base = command_args.get("base")
+        if not (currency or top or base):
+            raise ValueError(
+                "Не передан ни один из обязательных параметров: "
+                "\"currency\", \"top\", \"base\""
+            )
+        if currency:
+            currency = currency.upper()
+        if top:
+            top = int(top)
+        if base:
+            base = base.upper()
+        rates, last_update = self._core.show_rates(
+            currency=currency, top=top, base=base
+        )
+        records = [
+            f"- {currency}: {rate:.2f}" for currency, rate in rates.items()
+        ]
+        records = "\n".join(records) if records else "Курсы не найдены"
+        print(f"Rates from cache (updated at {last_update.isoformat()}):\n"
+              f"{records}")
 
     @staticmethod
     def _input() -> tuple[Commands, Optional[str]]:

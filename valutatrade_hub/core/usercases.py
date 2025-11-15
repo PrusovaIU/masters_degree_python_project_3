@@ -12,6 +12,7 @@ from valutatrade_hub.parser_service.exception import ApiRequestError
 from valutatrade_hub.parser_service.updater import RatesUpdater
 from .utils.rates import load_rates
 from datetime import timedelta, datetime
+from valutatrade_hub.parser_service.models.rate import parse_rate_key, rate_key
 
 
 class UserError(CoreError):
@@ -76,9 +77,11 @@ class Core:
             rates_path: Path,
             user_passwd_min_length: int,
             rates_updater: RatesUpdater,
-            rates_update_interval: int
+            rates_update_interval: int,
+            base_currency: str
     ):
         User.set_min_password_length(user_passwd_min_length)
+        self._base_currency = base_currency
         self._user_passwd_min_length = user_passwd_min_length
         self._db_manager = DatabaseManager(data_path)
         self._parser_service = rates_updater
@@ -376,3 +379,53 @@ class Core:
         except ApiRequestError as e:
             raise CoreError(f"Ошибка обновления курсов: {e}")
 
+    def show_rates(
+            self,
+            *,
+            currency: str | None = None,
+            top: int | None = None,
+            base: str | None = None
+    ) -> tuple[RateDictType, datetime]:
+        """
+        Получение фильтрованных курсов валют.
+
+        :param currency: код валюты. Если указан, то будут выдан курс
+            указанной валюты к базовой валюте.
+
+        :param top: количество записей с самым высоким курсом.
+
+        :param base: код валюты, относительно которой будут выданы курсы.
+
+        :return: курсы валют, дата и время обновления курса.
+        """
+        if currency:
+            rates ={
+                f"{currency}_{self._base_currency}":
+                    self._rates.get_rate(currency, self._base_currency)
+            }
+        elif top:
+            rates = self._show_rates_top(top)
+        elif base:
+            rates = self._rates.get_exchange_rate(base)
+        else:
+            raise ValueError("Не указаны параметры для вывода курсов валют")
+        return rates, self._rates.last_refresh
+
+    def _show_rates_top(self, top: int) -> RateDictType:
+        rates = {}
+        for key, value in self._rates.pairs.items():
+            if 1 > value.rate > 0:
+                value = 1 / value.rate
+                fc, tc = parse_rate_key(key)
+                key = rate_key(tc, fc)
+            else:
+                value = value.rate
+            rates[key] = value
+        sorted_rates = sorted(
+            rates.items(),
+            key=lambda v: v[-1],
+            reverse=True
+        )
+        return {
+            key: value for key, value in sorted_rates[:top]
+        }

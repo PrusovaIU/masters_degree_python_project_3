@@ -13,6 +13,7 @@ class Commands(Enum):
     sell = "sell"
     get_rate = "get-rate"
     update_rates = "update-rates"
+    show_rates = "show-rates"
     exit = "exit"
 
 
@@ -120,7 +121,10 @@ class CommandHandler:
         handler_args = [] if class_obj is None else [class_obj]
         if args:
             handler_args.append(args)
-        return handler(*handler_args)
+        try:
+            return handler(*handler_args)
+        except TypeError as e:
+            print(f"Не указаны требуемые аргументы команды: {e}")
 
     @classmethod
     def handle(
