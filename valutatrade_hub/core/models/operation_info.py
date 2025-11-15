@@ -1,7 +1,13 @@
 from dataclasses import dataclass, InitVar
+from enum import Enum
 from typing import Optional
 from .wallet import Wallet
 from ..currencies import get_currency, Currency
+
+
+class BalanceOperationType(Enum):
+    buy = "покупка"
+    sell = "продажа"
 
 
 @dataclass
@@ -20,7 +26,7 @@ class OperationInfo:
     #: базовая валюта
     base_currency: str
     #: тип операции
-    operation_type: str
+    operation_type: BalanceOperationType
     #: валюта покупки
     currency: Currency | None = None
     #: курс базовая валюта/валюта покупки
@@ -37,4 +43,6 @@ class OperationInfo:
             raise ValueError(
                 "Значение параметра \"amount\" должно быть больше нуля"
             )
+        if self.operation_type == BalanceOperationType.sell:
+            self.amount *= -1
         self.currency = get_currency(self.currency_code)

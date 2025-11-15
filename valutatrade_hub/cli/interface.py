@@ -7,9 +7,9 @@ from .commands import (Commands, CommandHandler, CommandArgsType,
 from valutatrade_hub.core import models
 from functools import wraps
 import re
-from enum import Enum
 from valutatrade_hub.config import Config
 from valutatrade_hub.parser_service.updater import RatesUpdater
+from ..core.models.operation_info import BalanceOperationType
 
 
 class EngineError(Exception):
@@ -18,11 +18,6 @@ class EngineError(Exception):
 
 class UnknownCommandError(EngineError):
     pass
-
-
-class BalanceOperationType(Enum):
-    buy = "покупка"
-    sell = "продажа"
 
 
 def check_login(func: CommandHandlerType) -> Callable:
@@ -211,18 +206,20 @@ class Engine:
         try:
             currency: str = command_args["currency"].upper()
             amount: float = float(command_args["amount"])
-            if operation_type == BalanceOperationType.sell:
-                amount = -amount
-                create_wallet = False
-            else:
-                create_wallet = True
+            if amount <= 0:
+                raise ValueError(
+                    "Значение параметра \"amount\" должно быть больше нуля"
+                )
+            create_wallet = False \
+                if operation_type == BalanceOperationType.sell \
+                else True
             info = models.OperationInfo(
                 username=self._current_user.username,
                 user_id=self._current_user.user_id,
                 amount=amount,
                 currency_code=currency,
                 base_currency=self._base_currency,
-                operation_type=operation_type.value
+                operation_type=operation_type
             )
             self._core.balance_operation(
                 self._current_user.user_id, info, create_wallet

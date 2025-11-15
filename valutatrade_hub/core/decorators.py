@@ -46,7 +46,7 @@ def _error_log(
 ) -> LogRecord:
     if operation_info:
         return BalanceLogRecord(
-            action=operation_info.operation_type,
+            action=operation_info.operation_type.value,
             result=_ERROR,
             error_type=error.__class__.__name__,
             error_message=str(error),
@@ -81,7 +81,7 @@ def _success_log(
     """
     if operation_info:
         return BalanceLogRecord(
-            action=operation_info.operation_type,
+            action=operation_info.operation_type.value,
             result=_SUCCESS,
             message=verbose,
             username=operation_info.username,
