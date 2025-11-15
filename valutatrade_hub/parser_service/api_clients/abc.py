@@ -4,6 +4,7 @@ from typing import Optional
 import requests
 from valutatrade_hub.parser_service import models
 from valutatrade_hub.parser_service.config import ParserConfig
+from valutatrade_hub.parser_service.models.rate import RagesType, rate_key
 from valutatrade_hub.parser_service.utils.lead_time import LeadTime
 from valutatrade_hub.parser_service.exception import ApiRequestError
 
@@ -44,9 +45,6 @@ class ClientApiRequestError(ApiRequestError):
                 f"{self._error} ({self._error_type})")
 
 
-RagesType = dict[str, models.Rate]
-
-
 class BaseApiClient(metaclass=ABCMeta):
     def __init__(self, config: ParserConfig):
         self._history: list[models.ExchangeRate] = []
@@ -69,10 +67,6 @@ class BaseApiClient(metaclass=ABCMeta):
         :return: список журнальных записей.
         """
         pass
-
-    @classmethod
-    def rate_key(cls, from_currency: str, to_currency: str) -> str:
-        return f"{from_currency}_{to_currency}"
 
     def _request(
             self,
@@ -118,7 +112,7 @@ class BaseApiClient(metaclass=ABCMeta):
         """
         rates = {}
         for item in exchange_rates:
-            key = self.rate_key(item.from_currency, item.to_currency)
+            key = rate_key(item.from_currency, item.to_currency)
             rates[key] = models.Rate(
                 item.rate,
                 item.timestamp,

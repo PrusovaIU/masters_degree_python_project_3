@@ -1,8 +1,9 @@
 from requests import Response
 
 from .config import ParserConfig
-from .api_clients.abc import (BaseApiClient, RagesType, ClientApiRequestError,
+from .api_clients.abc import (BaseApiClient, ClientApiRequestError,
                               ApiHTTPError)
+from .models.rate import RagesType
 from .models import ExchangeRate
 from .models.storage import Storage
 from datetime import datetime
@@ -13,25 +14,7 @@ import logging
 from traceback import extract_tb
 from .models import Rate
 from .utils.files import write_file
-from .exception import ApiRequestError
-
-
-class UnknownRateError(ApiRequestError):
-    def __init__(self, from_currency: str, to_currency: str):
-        self._from_currency = from_currency
-        self._to_currency = to_currency
-
-    @property
-    def from_currency(self) -> str:
-        return self._from_currency
-
-    @property
-    def to_currency(self) -> str:
-        return self._to_currency
-
-    def __str__(self):
-        return (f"Неизвестный курс "
-                f"{self._from_currency} -> {self._to_currency}")
+from .exception import ApiRequestError, UnknownRateError
 
 
 class RatesUpdater:
