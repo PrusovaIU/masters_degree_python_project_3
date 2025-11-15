@@ -1,5 +1,6 @@
-from valutatrade_hub.logging_config.log_record import LogRecord
 from dataclasses import dataclass
+
+from valutatrade_hub.logging_config.log_record import LogRecord
 
 
 @dataclass

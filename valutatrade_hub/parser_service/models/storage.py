@@ -1,10 +1,9 @@
-from enum import Enum
-
-from .rate import RatesType, rate_key, Rate, parse_rate_key
-from typing import NamedTuple
 from datetime import datetime
-from ..exception import UnknownRateError
+from enum import Enum
+from typing import NamedTuple
 
+from ..exception import UnknownRateError
+from .rate import Rate, RatesType, parse_rate_key, rate_key
 
 RateDictType = dict[str, float]
 

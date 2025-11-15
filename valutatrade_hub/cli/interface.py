@@ -1,17 +1,21 @@
+import re
 from collections.abc import Callable
+from functools import wraps
 from typing import Optional
 
-from valutatrade_hub.core import usercases
-from .commands import (Commands, CommandHandler, CommandArgsType,
-                       CommandHandlerType)
-from valutatrade_hub.core import models
-from functools import wraps
-import re
 from valutatrade_hub.config import Config
-from valutatrade_hub.parser_service.updater import RatesUpdater
+from valutatrade_hub.core import models, usercases
+from valutatrade_hub.core.exceptions import CoreError
 from valutatrade_hub.core.models.operation_info import BalanceOperationType
 from valutatrade_hub.parser_service.exception import ApiRequestError
-from valutatrade_hub.core.exceptions import CoreError
+from valutatrade_hub.parser_service.updater import RatesUpdater
+
+from .commands import (
+    CommandArgsType,
+    CommandHandler,
+    CommandHandlerType,
+    Commands,
+)
 
 
 class EngineError(Exception):

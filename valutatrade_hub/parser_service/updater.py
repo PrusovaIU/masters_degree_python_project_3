@@ -1,22 +1,20 @@
+import logging
+from datetime import datetime
 from pathlib import Path
+from traceback import extract_tb
 
 from requests import Response
 
-from .config import ParserConfig
-from .api_clients.abc import (BaseApiClient, ClientApiRequestError,
-                              ApiHTTPError)
-from .models.rate import RatesType
-from .models import ExchangeRate
-from .models.storage import Storage
-from datetime import datetime
-from .log_record import HTTPLogRecord
 from valutatrade_hub.logger import Logger
 from valutatrade_hub.logging_config.log_record import LogRecord
-import logging
-from traceback import extract_tb
-from .models import Rate
+
+from .api_clients.abc import ApiHTTPError, BaseApiClient, ClientApiRequestError
+from .config import ParserConfig
+from .log_record import HTTPLogRecord
+from .models import ExchangeRate
+from .models.rate import RatesType
+from .models.storage import Storage
 from .utils.files import write_file
-from .exception import ApiRequestError, UnknownRateError
 
 
 class RatesUpdater:

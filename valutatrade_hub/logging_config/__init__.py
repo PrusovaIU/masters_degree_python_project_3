@@ -5,9 +5,10 @@ from pathlib import Path
 from re import match
 from typing import Literal, NamedTuple, get_args
 
-from .formatter import JSONFormatter, StrFormatter
 from valutatrade_hub.infra import JsonSettingsLoader, Parameter
 from valutatrade_hub.infra.validator import field_validator
+
+from .formatter import JSONFormatter, StrFormatter
 
 #: типы единиц измерения для ротации логов:
 TimeUnit = Literal["s", "m", "h", "d"]

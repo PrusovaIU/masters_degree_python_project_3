@@ -16,6 +16,8 @@ argparse = "^1.4.0"
 
 [tool.poetry.dev-dependencies]
 ruff = "^0.14.4"
+asciinema = "^2.4.0"
+isort = "^7.0.0"
 
 [tool.poetry.scripts]
 project = "valutatrade_hub.main:main"

@@ -1,5 +1,6 @@
-from .abc import Currency
 from re import match
+
+from .abc import Currency
 
 
 class CryptoCurrency(Currency):

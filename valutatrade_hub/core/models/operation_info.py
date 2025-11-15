@@ -1,8 +1,9 @@
-from dataclasses import dataclass, InitVar
+from dataclasses import dataclass
 from enum import Enum
 from typing import Optional
+
+from ..currencies import Currency, get_currency
 from .wallet import Wallet
-from ..currencies import get_currency, Currency
 
 
 class BalanceOperationType(Enum):

@@ -1,11 +1,11 @@
 import json
-from collections.abc import Callable
-
-import toml
+from abc import ABCMeta, abstractmethod
 from pathlib import Path
 from typing import Any, NamedTuple
-from abc import ABCMeta, abstractmethod
-from .validator import FieldValidatorType, FieldValidator
+
+import toml
+
+from .validator import FieldValidator, FieldValidatorType
 
 
 class SettingsLoaderError(Exception):
@@ -99,7 +99,7 @@ class SettingsLoader(metaclass=ABCMeta):
         settings = {}
         for name, param in self.parameters().items():
             alias = param.alias or name
-            if (not alias in parsed_content
+            if (alias not in parsed_content
                     and param.default is _NotSet):
                 raise UnknownParameterError(
                     f"Не найден параметр \"{name}\" в файле "

@@ -1,7 +1,8 @@
 from dataclasses import dataclass, field
 from datetime import datetime
-from http import HTTPStatus
 from enum import Enum
+from http import HTTPStatus
+
 
 @dataclass
 class ExchangeRateMeta:

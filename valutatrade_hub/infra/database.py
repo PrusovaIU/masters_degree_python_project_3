@@ -1,6 +1,6 @@
 import json
 from pathlib import Path
-from typing import Protocol, TypeVar, Type
+from typing import Protocol, Type, TypeVar
 
 
 class DumpClassProtocol(Protocol):

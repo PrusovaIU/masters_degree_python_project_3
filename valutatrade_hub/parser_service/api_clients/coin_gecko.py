@@ -1,12 +1,12 @@
-from typing import Any
+
+from datetime import datetime
+from http import HTTPStatus
 
 import requests
 
-from .abc import BaseApiClient, ApiClientInfo
 from valutatrade_hub.parser_service import models
-from datetime import datetime
 
-from http import HTTPStatus
+from .abc import ApiClientInfo, BaseApiClient
 
 
 class CoinGeckoClient(BaseApiClient):

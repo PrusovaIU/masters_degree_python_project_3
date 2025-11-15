@@ -1,10 +1,11 @@
-from valutatrade_hub.config import Config
-from valutatrade_hub.cli.interface import Engine
-from valutatrade_hub.logger import Logger
-from valutatrade_hub.parser_service.config import ParserConfig
-from valutatrade_hub.parser_service.api_clients import init_clients
-from valutatrade_hub.parser_service.updater import RatesUpdater
 from argparse import ArgumentParser
+
+from valutatrade_hub.cli.interface import Engine
+from valutatrade_hub.config import Config
+from valutatrade_hub.logger import Logger
+from valutatrade_hub.parser_service.api_clients import init_clients
+from valutatrade_hub.parser_service.config import ParserConfig
+from valutatrade_hub.parser_service.updater import RatesUpdater
 
 
 def main():

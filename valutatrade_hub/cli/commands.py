@@ -1,8 +1,8 @@
+import re
 from collections.abc import Callable
 from enum import Enum
-from typing import Optional, Any, TypeAlias
-import re
 from inspect import signature
+from typing import Any, Optional, TypeAlias
 
 
 class Commands(Enum):
@@ -91,7 +91,7 @@ class CommandHandler:
         """
         try:
             return cls._handlers[command]
-        except KeyError as e:
+        except KeyError:
             raise SystemError(
                 f"Не зарегистрирован обработчик для команды \"{command}\""
             )

@@ -1,8 +1,8 @@
 import tempfile
-from json import dumps, JSONDecodeError
+from json import JSONDecodeError, dumps
 from pathlib import Path
-from valutatrade_hub.logger import Logger
 
+from valutatrade_hub.logger import Logger
 from valutatrade_hub.logging_config.log_record import LogRecord
 
 

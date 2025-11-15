@@ -1,14 +1,15 @@
 from abc import ABCMeta, abstractmethod
+from logging import getLogger
 from typing import Optional
 
 import requests
+
 from valutatrade_hub.parser_service import models
 from valutatrade_hub.parser_service.config import ParserConfig
+from valutatrade_hub.parser_service.exception import ApiRequestError
+from valutatrade_hub.parser_service.models import ApiClientInfo
 from valutatrade_hub.parser_service.models.rate import RatesType, rate_key
 from valutatrade_hub.parser_service.utils.lead_time import LeadTime
-from valutatrade_hub.parser_service.exception import ApiRequestError
-from logging import getLogger
-from valutatrade_hub.parser_service.models import ApiClientInfo
 
 
 class ApiHTTPError(ApiRequestError):

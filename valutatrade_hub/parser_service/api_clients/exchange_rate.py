@@ -1,8 +1,11 @@
-from .abc import BaseApiClient, ApiClientInfo
-from valutatrade_hub.parser_service import models
-import requests
 from datetime import datetime
 from http import HTTPStatus
+
+import requests
+
+from valutatrade_hub.parser_service import models
+
+from .abc import ApiClientInfo, BaseApiClient
 
 
 class ExchangeRateApiClient(BaseApiClient):
