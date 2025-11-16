@@ -1,17 +1,21 @@
+import re
 from collections.abc import Callable
+from functools import wraps
 from typing import Optional
 
-from valutatrade_hub.core import usercases
-from .commands import (Commands, CommandHandler, CommandArgsType,
-                       CommandHandlerType)
-from valutatrade_hub.core import models
-from functools import wraps
-import re
 from valutatrade_hub.config import Config
-from valutatrade_hub.parser_service.updater import RatesUpdater
+from valutatrade_hub.core import models, usercases
+from valutatrade_hub.core.exceptions import CoreError
 from valutatrade_hub.core.models.operation_info import BalanceOperationType
 from valutatrade_hub.parser_service.exception import ApiRequestError
-from valutatrade_hub.core.exceptions import CoreError
+from valutatrade_hub.parser_service.updater import RatesUpdater
+
+from .commands import (
+    CommandArgsType,
+    CommandHandler,
+    CommandHandlerType,
+    Commands,
+)
 
 
 class EngineError(Exception):
@@ -48,7 +52,8 @@ class Engine:
             config.rates_file_path,
             config.user_passwd_min_length,
             parser_service,
-            config.rates_update_interval
+            config.rates_update_interval,
+            config.base_currency
         )
         self._base_currency = config.base_currency
         self._current_user: Optional[models.User] = None
@@ -276,11 +281,48 @@ class Engine:
                 f"Обратный курс: {1 / rate}"
             )
 
-
     @CommandHandler(Commands.update_rates)
-    def update_rates(self, command_args: CommandArgsType) -> None:
-        source = command_args.get("source")
+    def update_rates(self, command_args: CommandArgsType = None) -> None:
+        """
+        Обработчик команды update_rates.
+
+        :param command_args: аргументы команды.
+        :return: None.
+        """
+        source = command_args.get("source") if command_args else None
         self._core.update_rates(source)
+
+    @CommandHandler(Commands.show_rates)
+    def show_rates(self, command_args: CommandArgsType) -> None:
+        """
+        Обработчик команды show_rates.
+
+        :param command_args: аргументы команды.
+        :return: None.
+        """
+        currency = command_args.get("currency")
+        top = command_args.get("top")
+        base = command_args.get("base")
+        if not (currency or top or base):
+            raise ValueError(
+                "Не передан ни один из обязательных параметров: "
+                "\"currency\", \"top\", \"base\""
+            )
+        if currency:
+            currency = currency.upper()
+        if top:
+            top = int(top)
+        if base:
+            base = base.upper()
+        rates, last_update = self._core.show_rates(
+            currency=currency, top=top, base=base
+        )
+        records = [
+            f"- {currency}: {rate:.4f}" for currency, rate in rates.items()
+        ]
+        records = "\n".join(records) if records else "Курсы не найдены"
+        print(f"Rates from cache (updated at {last_update.isoformat()}):\n"
+              f"{records}")
 
     @staticmethod
     def _input() -> tuple[Commands, Optional[str]]:

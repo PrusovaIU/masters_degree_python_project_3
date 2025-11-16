@@ -1,21 +1,21 @@
-from typing import Any
+
+from datetime import datetime
+from http import HTTPStatus
 
 import requests
 
-from .abc import BaseApiClient
 from valutatrade_hub.parser_service import models
-from datetime import datetime
 
-from http import HTTPStatus
+from .abc import ApiClientInfo, BaseApiClient
 
 
 class CoinGeckoClient(BaseApiClient):
     @property
-    def info(self) -> dict[str, str]:
-        return {
-            "name": "CoinGecko",
-            "url": self._config.coingecko_url
-        }
+    def info(self) -> ApiClientInfo:
+        return ApiClientInfo(
+            name="CoinGecko",
+            url=self._config.coingecko_url
+        )
 
     def _call_api(self) -> list[models.ExchangeRate]:
         params = {

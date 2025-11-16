@@ -1,8 +1,9 @@
+from enum import Enum
 from typing import Optional
 
-from .wallet import Wallet
 from valutatrade_hub.parser_service.models.storage import RateDictType
-from enum import Enum
+
+from .wallet import Wallet
 
 
 class PortfolioJsonKeys(Enum):

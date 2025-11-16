@@ -1,8 +1,8 @@
+import re
 from collections.abc import Callable
 from enum import Enum
-from typing import Optional, Any, TypeAlias
-import re
 from inspect import signature
+from typing import Any, Optional, TypeAlias
 
 
 class Commands(Enum):
@@ -13,6 +13,7 @@ class Commands(Enum):
     sell = "sell"
     get_rate = "get-rate"
     update_rates = "update-rates"
+    show_rates = "show-rates"
     exit = "exit"
 
 
@@ -90,7 +91,7 @@ class CommandHandler:
         """
         try:
             return cls._handlers[command]
-        except KeyError as e:
+        except KeyError:
             raise SystemError(
                 f"Не зарегистрирован обработчик для команды \"{command}\""
             )
@@ -120,7 +121,10 @@ class CommandHandler:
         handler_args = [] if class_obj is None else [class_obj]
         if args:
             handler_args.append(args)
-        return handler(*handler_args)
+        try:
+            return handler(*handler_args)
+        except TypeError as e:
+            print(f"Не указаны требуемые аргументы команды: {e}")
 
     @classmethod
     def handle(

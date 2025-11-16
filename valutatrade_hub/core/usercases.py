@@ -1,17 +1,18 @@
 import secrets
+from datetime import datetime, timedelta
 from pathlib import Path
 
-from .models import User, Wallet, Portfolio, OperationInfo
-from .models.wallet import NegativeBalanceError
-from valutatrade_hub.infra.database import DatabaseManager, DataError
-from .exceptions import CoreError
 from valutatrade_hub.core.exceptions import InsufficientFundsError
-from .decorators import log_action
-from valutatrade_hub.parser_service.models.storage import Storage, RateDictType
+from valutatrade_hub.infra.database import DatabaseManager, DataError
 from valutatrade_hub.parser_service.exception import ApiRequestError
+from valutatrade_hub.parser_service.models.storage import RateDictType, Storage
 from valutatrade_hub.parser_service.updater import RatesUpdater
+
+from .decorators import log_action
+from .exceptions import CoreError
+from .models import OperationInfo, Portfolio, User, Wallet
+from .models.wallet import NegativeBalanceError
 from .utils.rates import load_rates
-from datetime import timedelta, datetime
 
 
 class UserError(CoreError):
@@ -76,9 +77,11 @@ class Core:
             rates_path: Path,
             user_passwd_min_length: int,
             rates_updater: RatesUpdater,
-            rates_update_interval: int
+            rates_update_interval: int,
+            base_currency: str
     ):
         User.set_min_password_length(user_passwd_min_length)
+        self._base_currency = base_currency
         self._user_passwd_min_length = user_passwd_min_length
         self._db_manager = DatabaseManager(data_path)
         self._parser_service = rates_updater
@@ -376,3 +379,34 @@ class Core:
         except ApiRequestError as e:
             raise CoreError(f"Ошибка обновления курсов: {e}")
 
+    def show_rates(
+            self,
+            *,
+            currency: str | None = None,
+            top: int | None = None,
+            base: str | None = None
+    ) -> tuple[RateDictType, datetime]:
+        """
+        Получение фильтрованных курсов валют.
+
+        :param currency: код валюты. Если указан, то будут выдан курс
+            указанной валюты к базовой валюте.
+
+        :param top: количество записей с самым высоким курсом.
+
+        :param base: код валюты, относительно которой будут выданы курсы.
+
+        :return: курсы валют, дата и время обновления курса.
+        """
+        if currency:
+            rates ={
+                f"{currency}_{self._base_currency}":
+                    self._rates.get_rate(currency, self._base_currency)
+            }
+        elif top:
+            rates = self._rates.top(top)
+        elif base:
+            rates = self._rates.get_exchange_rate(base)
+        else:
+            raise ValueError("Не указаны параметры для вывода курсов валют")
+        return rates, self._rates.last_refresh

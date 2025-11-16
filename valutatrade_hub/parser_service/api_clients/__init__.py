@@ -1,8 +1,7 @@
-from .abc import BaseApiClient
-from .exchange_rate import ExchangeRateApiClient
-from .coin_gecko import CoinGeckoClient
 from ..config import ParserConfig
-
+from .abc import BaseApiClient
+from .coin_gecko import CoinGeckoClient
+from .exchange_rate import ExchangeRateApiClient
 
 __all__ = [
     "BaseApiClient",

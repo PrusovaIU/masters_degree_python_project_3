@@ -1,7 +1,8 @@
 from enum import Enum
+
+from valutatrade_hub.core.exceptions import InsufficientFundsError
 from valutatrade_hub.parser_service.exception import UnknownRateError
 from valutatrade_hub.parser_service.models.storage import RateDictType
-from valutatrade_hub.core.exceptions import InsufficientFundsError
 
 
 class WalletJsonKeys(Enum):

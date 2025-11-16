@@ -5,9 +5,10 @@ from pathlib import Path
 from re import match
 from typing import Literal, NamedTuple, get_args
 
-from .formatter import JSONFormatter, StrFormatter
 from valutatrade_hub.infra import JsonSettingsLoader, Parameter
 from valutatrade_hub.infra.validator import field_validator
+
+from .formatter import JSONFormatter, StrFormatter
 
 #: типы единиц измерения для ротации логов:
 TimeUnit = Literal["s", "m", "h", "d"]
@@ -34,8 +35,11 @@ class LoggingConfig(JsonSettingsLoader):
     rotation: Rotation = Parameter()
     #: уровень логирования:
     log_level: int = Parameter(default="INFO")
+    #: количество бэкапов:
     backup_count: int = Parameter(int, default=5)
+    #: кодировка:
     encoding: str = Parameter(default="utf-8")
+    #: формат логов:
     format: LogFormat = Parameter(LogFormat, default=LogFormat.json.value)
 
     def __init__(self, *args, **kwargs):

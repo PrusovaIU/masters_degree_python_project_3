@@ -2,10 +2,10 @@ import logging
 from functools import wraps
 
 from valutatrade_hub.logging_config.log_record import LogRecord
-from .log_record import BalanceLogRecord
-from ..logger import Logger
-from .models.operation_info import OperationInfo
 
+from ..logger import Logger
+from .log_record import BalanceLogRecord
+from .models.operation_info import OperationInfo
 
 _SUCCESS = "OK"
 _ERROR = "ERROR"

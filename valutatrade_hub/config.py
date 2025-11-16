@@ -1,5 +1,6 @@
-from valutatrade_hub.infra import SingletonMeta, JsonSettingsLoader, Parameter
 from pathlib import Path
+
+from valutatrade_hub.infra import JsonSettingsLoader, Parameter, SingletonMeta
 
 
 class Config(JsonSettingsLoader, metaclass=SingletonMeta):

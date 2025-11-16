@@ -1,6 +1,8 @@
-from valutatrade_hub.parser_service.models import Storage
+from json import JSONDecodeError, load
 from pathlib import Path
-from json import load, JSONDecodeError
+
+from valutatrade_hub.parser_service.models import Storage
+
 from ..exceptions import CoreError
 
 

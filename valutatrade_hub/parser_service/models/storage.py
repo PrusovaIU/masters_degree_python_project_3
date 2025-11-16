@@ -1,10 +1,9 @@
-from enum import Enum
-
-from .rate import RatesType, rate_key, Rate, parse_rate_key
-from typing import NamedTuple
 from datetime import datetime
-from ..exception import UnknownRateError
+from enum import Enum
+from typing import NamedTuple
 
+from ..exception import UnknownRateError
+from .rate import Rate, RatesType, parse_rate_key, rate_key
 
 RateDictType = dict[str, float]
 
@@ -74,6 +73,31 @@ class Storage(NamedTuple):
             return rate.rate
         except KeyError:
             return None
+
+    def top(self, count: int) -> RateDictType:
+        """
+        Получение топа валют по курсу.
+
+        :param count: количество валют в топе.
+        :return: список валют с курсами.
+        """
+        rates = {}
+        for key, value in self.pairs.items():
+            if 1 > value.rate > 0:
+                value = 1 / value.rate
+                fc, tc = parse_rate_key(key)
+                key = rate_key(tc, fc)
+            else:
+                value = value.rate
+            rates[key] = value
+        sorted_rates = sorted(
+            rates.items(),
+            key=lambda v: v[-1],
+            reverse=True
+        )
+        return {
+            key: value for key, value in sorted_rates[:count]
+        }
 
     @classmethod
     def load(cls, data: dict) -> "Storage":
