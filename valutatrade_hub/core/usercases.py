@@ -1,0 +1,412 @@
+import secrets
+from datetime import datetime, timedelta
+from pathlib import Path
+
+from valutatrade_hub.core.exceptions import InsufficientFundsError
+from valutatrade_hub.infra.database import DatabaseManager, DataError
+from valutatrade_hub.parser_service.exception import ApiRequestError
+from valutatrade_hub.parser_service.models.storage import RateDictType, Storage
+from valutatrade_hub.parser_service.updater import RatesUpdater
+
+from .decorators import log_action
+from .exceptions import CoreError
+from .models import OperationInfo, Portfolio, User, Wallet
+from .models.wallet import NegativeBalanceError
+from .utils.rates import load_rates
+
+
+class UserError(CoreError):
+    """
+    Класс ошибки взаимодействия с пользователем.
+    """
+    pass
+
+class UserIsAlreadyExistError(UserError):
+    """
+    Класс ошибки регистрации нового пользователя с уже существующим именем.
+    """
+    pass
+
+class UnknownUserError(UserError):
+    """
+    Класс ошибки при обращении к несуществующему пользователю.
+    """
+    pass
+
+
+class UnknownWalletError(CoreError):
+    """
+    Класс ошибки при обращении к несуществующему кошельку.
+    """
+    def __init__(self, user_id: int, currency: str):
+        self.user_id = user_id
+        self.currency = currency
+
+    def __str__(self):
+        return (f"Не существует кошелек для пользователя {self.user_id} "
+                f"в валюте {self.currency}")
+
+
+class LoadDataError(CoreError):
+    """
+    Класс ошибки загрузки данных.
+    """
+    pass
+
+
+class SaveDataError(CoreError):
+    """
+    Класс ошибки сохранения данных.
+    """
+    pass
+
+
+class Core:
+    """
+    Ядро приложения.
+
+    :param data_path: путь к файлу с данными.
+    :param rates_path: путь к файлу с курсами валют.
+    :param user_passwd_min_length: минимальная длина пароля пользователя.
+    :param rates_updater: сервис обновления курсов валют.
+    :param rates_update_interval: интервал обновления курсов валют (в минутах).
+    """
+    def __init__(
+            self,
+            data_path: Path,
+            rates_path: Path,
+            user_passwd_min_length: int,
+            rates_updater: RatesUpdater,
+            rates_update_interval: int,
+            base_currency: str
+    ):
+        User.set_min_password_length(user_passwd_min_length)
+        self._base_currency = base_currency
+        self._user_passwd_min_length = user_passwd_min_length
+        self._db_manager = DatabaseManager(data_path)
+        self._parser_service = rates_updater
+        self._rates_path = rates_path
+        self._rates: Storage = load_rates(rates_path)
+        self._rates_update_interval = timedelta(minutes=rates_update_interval)
+        try:
+            self._users: list[User] = self._db_manager.load_data(User)
+            self._portfolios: list[Portfolio] = self._db_manager.load_data(
+                Portfolio
+            )
+        except DataError as e:
+            raise CoreError(str(e))
+
+    @property
+    def user_names(self) -> list[str]:
+        """
+        :return: список имен пользователей.
+        """
+        return [user.username for user in self._users]
+
+    def registrate_user(self, username: str, password: str) -> int:
+        """
+        Регистрация нового пользователя.
+
+        При успешной регистрации создается новый пользователь и его портфель.
+
+        :param username: имя пользователя.
+        :param password: пароль пользователя.
+        :return: ID нового пользователя.
+
+        :raises ValueError: если переданы некорректные параметры.
+
+        :raises UserIsAlreadyExistError: если пользователь с таким именем уже
+            существует.
+
+        :raises CoreError: если не удалось создать нового пользователя
+        """
+        new_user = self._new_user(username, password)
+        self._new_portfolio(new_user)
+        return new_user.user_id
+
+    def _new_user(self, username: str, password: str) -> User:
+        """
+        Создание нового пользователя.
+
+        :param username: имя пользователя.
+        :param password: пароль пользователя.
+        :return: новый пользователь.
+
+        :raises ValueError: если переданы некорректные параметры.
+
+        :raises UserIsAlreadyExistError: если пользователь с таким именем уже
+            существует.
+
+        :raises CoreError: если не удалось создать нового пользователя
+        """
+        if username in self.user_names:
+            raise UserIsAlreadyExistError(username)
+        user_id: int = max(
+            [user.user_id for user in self._users],
+            default=0
+        ) + 1
+        solt: str = secrets.token_hex(32)
+        user = User.new(
+            user_id,
+            username,
+            password,
+            solt
+        )
+        self._users.append(user)
+        self._db_manager.save_data(User, self._users)
+        return user
+
+    def _new_portfolio(self, user: User) -> Portfolio:
+        """
+        Создание нового портфеля.
+
+        :param user: пользователь, для которого создается портфель.
+        :return: новый портфель.
+
+        :raises CoreError: если не удалось создать новый портфель.
+        """
+        new_portfolio = Portfolio(user.user_id)
+        self._portfolios.append(new_portfolio)
+        self._db_manager.save_data(Portfolio, self._portfolios)
+        return new_portfolio
+
+    def login_user(self, username: str, password: str) -> User:
+        """
+        Авторизация пользователя.
+
+        :param username: имя пользователя.
+        :param password: пароль пользователя.
+        :return: пользователь.
+
+        :raises ValueError: если передан некорректный пароль.
+
+        :raises UnknownUserError: если пользователь с таким именем не найден.
+        """
+        try:
+            user: User = [
+                user for user in self._users if user.username == username
+            ][0]
+            if not user.check_password(password):
+                raise ValueError("Неверный пароль")
+            return user
+        except IndexError:
+            raise UnknownUserError(username)
+
+    def get_portfolio(self, user_id: int) -> Portfolio:
+        """
+        Получение портфеля пользователя.
+
+        :param user_id: ID пользователя.
+        :return: портфель пользователя.
+
+        :raises UnknownUserError: если портфель для указанного пользователя
+            не найден.
+        """
+        try:
+            return [
+                portfolio for portfolio in self._portfolios
+                if portfolio.user == user_id
+            ][0]
+        except IndexError:
+            raise UnknownUserError(user_id)
+
+    def get_total_balance(self, user_id: int, base_currency: str) -> float:
+        """
+        Получение баланса портфеля пользователя.
+
+        :param user_id: ID пользователя.
+        :param base_currency: валюта, в которую будет конвертироваться баланс.
+        :return: баланс портфеля в указанной валюте.
+        """
+        portfolio: Portfolio = self.get_portfolio(user_id)
+        return portfolio.get_total_value(
+            self._rates.get_exchange_rate(base_currency),
+            base_currency
+        )
+
+    def get_wallets_balances(
+            self,
+            user_id: int,
+            base_currency: str
+    ) -> dict[Wallet, float]:
+        """
+        Получение балансов портфеля пользователя.
+
+        Балансы всех кошельков конвертируются в указанную валюту.
+
+        :param user_id: ID пользователя.
+        :param base_currency: валюта, в которую будут конвертироваться балансы.
+
+        :return: словарь с балансами портфеля вида
+            {кошелек: конвертированный баланс}
+
+        :raises UnknownUserError: если портфель для указанного пользователя
+            не найден.
+
+        :raises valutatrade_hub.core.utils.currency_rates.CurrencyRatesError:
+            если не удалось получить курс валюты.
+        """
+        portfolio = self.get_portfolio(user_id)
+        rates: RateDictType = self._rates.get_exchange_rate(base_currency)
+        data = {}
+        for wallet in portfolio.wallets.values():
+            data[wallet] = wallet.convert(base_currency, rates)
+        return data
+
+    def get_wallet(
+            self,
+            user_id: int,
+            currency: str,
+            create_wallet: bool
+    ) -> Wallet:
+        """
+        Получение кошелька пользователя.
+
+        Если кошелек не существует, и параметр create_wallet равен True,
+        то будет создан новый кошелек. Иначе будет выброшено исключение.
+
+        :param user_id: ID пользователя.
+
+        :param currency: код валюты.
+
+        :param create_wallet: если не существует кошелек для указанного
+            пользователя в указанной валюте, и данный параметр равен True,
+            то будет создан новый кошелек.
+
+        :return: кошелек пользователя в указанной валюте.
+
+        :raises UnknownWalletError: если кошелек для указанного пользователя
+            в указанной валюты не существует, и параметр
+            create_wallet равен False.
+        """
+        portfolio = self.get_portfolio(user_id)
+        wallet: Wallet | None = portfolio.get_wallet(currency)
+        if wallet is None:
+            if create_wallet:
+                wallet = portfolio.add_currency(currency)
+            else:
+                raise UnknownWalletError(user_id, currency)
+        return wallet
+
+    @log_action()
+    def balance_operation(
+            self,
+            user_id: int,
+            operation_info: OperationInfo,
+            create_wallet: bool
+    ) -> None:
+        """
+        Покупка валюты.
+
+        :param user_id: ID пользователя.
+
+        :param operation_info: информация об операции.
+
+        :param create_wallet: если не существует кошелек для указанного
+            пользователя в указанной валюте, и данный параметр равен True,
+            то будет создан новый кошелек.
+
+        :return: None.
+
+        :raises UnknownUserError: если портфель для указанного пользователя
+            не найден.
+
+        :raises UnknownWalletError: если кошелек для указанного пользователя
+            в указанной валюты не существует, и параметр
+            create_wallet равен False.
+
+        :raises ValueError: если переданы некорректные данные.
+
+        :raises valutatrade_hub.core.utils.currency_rates.CurrencyRatesError:
+            если не удалось получить курс валюты.
+
+        :raises CoreError: если не удалось совершить покупку.
+        """
+        # валидация amount и currency реализована в OperationInfo
+        wallet = self.get_wallet(
+            user_id, operation_info.currency_code, create_wallet
+        )
+        operation_info.before_balance = wallet.balance
+        operation_info.wallet = wallet
+        try:
+            wallet.balance += operation_info.amount
+            self._db_manager.save_data(Portfolio, self._portfolios)
+            operation_info.after_balance = wallet.balance
+            operation_info.rate = self._rates.get_rate(
+                operation_info.base_currency, operation_info.currency_code
+            )
+        except SaveDataError as e:
+            wallet.balance -= operation_info.amount
+            raise e
+        except NegativeBalanceError:
+            raise InsufficientFundsError(
+                wallet.balance,
+                abs(operation_info.amount),
+                operation_info.currency_code
+            )
+
+    def get_rate(
+            self,
+            from_currency: str,
+            to_currency: str
+    ) -> tuple[float, datetime]:
+        """
+        Получение курса валюты.
+
+        :param from_currency: код конвертируемой валюты.
+        :param to_currency: код валюты, в которую будет конвертироваться.
+        :return: курс валюты, дата и время обновления курса.
+
+        :raises valutatrade_hub.parser_service.exception.ApiRequestError:
+            если не удалось получить курс валюты.
+        """
+        last_refresh = datetime.now() - self._rates.last_refresh
+        if last_refresh >= self._rates_update_interval:
+            self._parser_service.run_update()
+            self._rates = load_rates(self._rates_path)
+        rate = self._rates.get_rate(from_currency, to_currency)
+        return rate, self._rates.last_refresh
+
+    def update_rates(self, source: str | None) -> None:
+        """
+        Обновление курсов валют.
+
+        :param source:
+        :return:
+        """
+        try:
+            self._parser_service.run_update(source)
+        except ApiRequestError as e:
+            raise CoreError(f"Ошибка обновления курсов: {e}")
+
+    def show_rates(
+            self,
+            *,
+            currency: str | None = None,
+            top: int | None = None,
+            base: str | None = None
+    ) -> tuple[RateDictType, datetime]:
+        """
+        Получение фильтрованных курсов валют.
+
+        :param currency: код валюты. Если указан, то будут выдан курс
+            указанной валюты к базовой валюте.
+
+        :param top: количество записей с самым высоким курсом.
+
+        :param base: код валюты, относительно которой будут выданы курсы.
+
+        :return: курсы валют, дата и время обновления курса.
+        """
+        if currency:
+            rates ={
+                f"{currency}_{self._base_currency}":
+                    self._rates.get_rate(currency, self._base_currency)
+            }
+        elif top:
+            rates = self._rates.top(top)
+        elif base:
+            rates = self._rates.get_exchange_rate(base)
+        else:
+            raise ValueError("Не указаны параметры для вывода курсов валют")
+        return rates, self._rates.last_refresh
