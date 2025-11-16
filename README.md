@@ -368,3 +368,7 @@ make project CONFIG=<путь до файла конфигурации> PS_CONFI
 ### Регистрация
 
 [![asciicast](https://asciinema.org/a/DuHf3xwJtHH7ITrhM1TLxS9hv.svg)](https://asciinema.org/a/DuHf3xwJtHH7ITrhM1TLxS9hv)
+
+### Покупка валюты
+
+[![asciicast](https://asciinema.org/a/t7ZJj2M06xQIkXJEtwXhxtZDw.svg)](https://asciinema.org/a/t7ZJj2M06xQIkXJEtwXhxtZDw)
