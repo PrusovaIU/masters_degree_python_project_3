@@ -26,7 +26,7 @@ class ExchangeRateApiClient(BaseApiClient):
         for i, from_currency in enumerate(currencies):
             url = (f"{self._config.exchangerate_api_url}/"
                    f"{self._config.exchangerate_api_key}"
-                   f"/latest/{self._config.base_currency}")
+                   f"/latest/{from_currency}")
             response, lead_time = self._request(url)
             rates = self._parse_response(
                 response, lead_time, from_currency, currencies[i+1:]

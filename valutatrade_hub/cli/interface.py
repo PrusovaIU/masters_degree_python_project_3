@@ -318,7 +318,7 @@ class Engine:
             currency=currency, top=top, base=base
         )
         records = [
-            f"- {currency}: {rate:.2f}" for currency, rate in rates.items()
+            f"- {currency}: {rate:.4f}" for currency, rate in rates.items()
         ]
         records = "\n".join(records) if records else "Курсы не найдены"
         print(f"Rates from cache (updated at {last_update.isoformat()}):\n"

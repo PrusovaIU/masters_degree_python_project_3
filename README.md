@@ -376,3 +376,7 @@ make project CONFIG=<путь до файла конфигурации> PS_CONFI
 ### Продажа валюты
 
 [![asciicast](https://asciinema.org/a/65xDV4CD2g5NsEUskSyhWYrBr.svg)](https://asciinema.org/a/65xDV4CD2g5NsEUskSyhWYrBr)
+
+### Получение курса валют
+
+[![asciicast](https://asciinema.org/a/lA2XbLHYjdJ4dcSXAG4jhf5gj.svg)](https://asciinema.org/a/lA2XbLHYjdJ4dcSXAG4jhf5gj)
