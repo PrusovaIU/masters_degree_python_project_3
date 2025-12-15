@@ -365,6 +365,8 @@ make project CONFIG=<путь до файла конфигурации> PS_CONFI
 
 ## Демонстрация
 
+Ролики находятся в директории docs.
+
 ### Регистрация
 
 [![asciicast](https://asciinema.org/a/DuHf3xwJtHH7ITrhM1TLxS9hv.svg)](https://asciinema.org/a/DuHf3xwJtHH7ITrhM1TLxS9hv)
